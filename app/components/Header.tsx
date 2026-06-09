@@ -46,10 +46,10 @@ export default function Header() {
               <HelpCircle className="w-4 h-4" />
               <span>Aide</span>
             </button>
-            <button className="flex items-center space-x-2 bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition duration-200">
+            <Link href="/login" className="flex items-center space-x-2 bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition duration-200">
               <User className="w-4 h-4" />
               <span>Se connecter</span>
-            </button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -96,10 +96,10 @@ export default function Header() {
                 <ShieldCheck className="w-4 h-4 text-brand-green" />
                 <span>Garantie Voyage Sécurisé Active</span>
               </div>
-              <button className="w-full flex items-center justify-center space-x-2 bg-brand-green text-white hover:bg-brand-green-dark px-4 py-3 rounded-xl text-base font-semibold shadow-xs transition">
+              <Link href="/login" className="w-full flex items-center justify-center space-x-2 bg-brand-green text-white hover:bg-brand-green-dark px-4 py-3 rounded-xl text-base font-semibold shadow-xs transition" onClick={() => setIsOpen(false)}>
                 <User className="w-4 h-4" />
                 <span>Se connecter / S'inscrire</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
