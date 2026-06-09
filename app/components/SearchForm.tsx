@@ -216,7 +216,7 @@ export default function SearchForm({
           </div>
 
           {/* Date Picker */}
-          <div className={`${compact ? "lg:col-span-2" : "lg:col-span-2"}`}>
+          <div className={`${compact ? "lg:col-span-2" : "lg:col-span-2"} min-w-0`}>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Date de voyage</label>
             <div className="relative group">
               <Calendar className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-brand-green pointer-events-none" />
@@ -228,7 +228,7 @@ export default function SearchForm({
                   setDate(e.target.value);
                   setError("");
                 }}
-                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 hover:bg-gray-100/70 focus:bg-white rounded-xl border border-gray-100 focus:border-brand-green focus:outline-hidden text-sm font-medium text-gray-800 transition"
+                className="w-full min-w-0 appearance-none pl-12 pr-4 py-3.5 bg-gray-50 hover:bg-gray-100/70 focus:bg-white rounded-xl border border-gray-100 focus:border-brand-green focus:outline-hidden text-sm font-medium text-gray-800 transition"
               />
             </div>
           </div>
