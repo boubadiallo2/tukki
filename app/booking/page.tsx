@@ -4,7 +4,8 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { generateTrips, Trip, OPERATORS } from "../lib/mockData";
+import { supabase } from "../lib/supabaseClient";
+import { Trip, OPERATORS } from "../lib/mockData";
 import {
   Armchair,
   User,
@@ -42,13 +43,40 @@ function BookingPageContent() {
 
   // Load trip details
   useEffect(() => {
-    if (tripId && from && to && date) {
-      const generated = generateTrips(from, to, date);
-      const match = generated.find((t) => t.id === tripId);
-      if (match) {
-        setTrip(match);
+    async function fetchTrip() {
+      if (tripId && from && to && date) {
+        try {
+          const { data, error } = await supabase
+            .from('trips')
+            .select('*, companies(*)')
+            .eq('id', tripId)
+            .single();
+
+          if (data && !error) {
+            setTrip({
+              id: data.id,
+              companyName: data.companies.name,
+              companyCode: data.companies.code,
+              departureCity: data.departure_city,
+              arrivalCity: data.arrival_city,
+              departureTime: data.departure_time.substring(0, 5),
+              arrivalTime: data.arrival_time.substring(0, 5),
+              duration: data.duration,
+              price: data.price,
+              availableSeats: data.available_seats,
+              totalSeats: data.total_seats,
+              occupiedSeats: data.occupied_seats || [],
+              rating: parseFloat(data.companies.rating),
+              amenities: data.companies.amenities || []
+            });
+          }
+        } catch (err) {
+          console.error("Failed to fetch trip details", err);
+        }
       }
     }
+    
+    fetchTrip();
   }, [tripId, from, to, date]);
 
   // Handle seat clicks
@@ -99,26 +127,53 @@ function BookingPageContent() {
 
     setIsSubmitting(true);
     
-    // Simulate booking API call
-    setTimeout(() => {
-      const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
-      const query = new URLSearchParams({
-        bookingNumber: randomId,
-        name: names.map(n => n.trim()).join(","),
-        phone,
-        email,
-        seats: selectedSeats.join(","),
-        tripId: trip.id,
-        from: trip.departureCity,
-        to: trip.arrivalCity,
-        date: date,
-        departureTime: trip.departureTime,
-        arrivalTime: trip.arrivalTime,
-        operator: trip.companyName,
-        price: (trip.price * passengersCount + 100 * passengersCount).toString()
-      });
-      router.push(`/confirmation?${query.toString()}`);
-    }, 1000);
+    // Save booking to Supabase
+    const submitBooking = async () => {
+      try {
+        const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
+        const passengersName = names.map(n => n.trim()).join(", ");
+        const finalPrice = trip.price * passengersCount + 100 * passengersCount;
+
+        const { error: insertError } = await supabase.from('bookings').insert({
+          trip_id: trip.id,
+          passenger_name: passengersName,
+          passenger_phone: phone,
+          passenger_email: email || null,
+          selected_seats: selectedSeats,
+          total_price: finalPrice,
+          booking_number: randomId,
+        });
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        // Redirect to confirmation
+        const query = new URLSearchParams({
+          bookingNumber: randomId,
+          name: passengersName,
+          phone,
+          email,
+          seats: selectedSeats.join(","),
+          tripId: trip.id,
+          from: trip.departureCity,
+          to: trip.arrivalCity,
+          date: date,
+          departureTime: trip.departureTime,
+          arrivalTime: trip.arrivalTime,
+          operator: trip.companyName,
+          price: finalPrice.toString()
+        });
+        router.push(`/confirmation?${query.toString()}`);
+
+      } catch (err) {
+        console.error(err);
+        setError("Une erreur est survenue lors de la réservation. Veuillez réessayer.");
+        setIsSubmitting(false);
+      }
+    };
+
+    submitBooking();
   };
 
   // Generate seat map arrays (9 rows, 4 columns)

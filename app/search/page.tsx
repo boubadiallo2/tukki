@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import SearchForm from "../components/SearchForm";
-import { generateTrips, Trip, OPERATORS } from "../lib/mockData";
+import { supabase } from "../lib/supabaseClient";
+import { Trip, OPERATORS } from "../lib/mockData";
 import {
   Filter,
   ArrowUpDown,
@@ -40,10 +41,49 @@ function SearchPageContent() {
 
   // Load trips when query changes
   useEffect(() => {
-    if (from && to && date) {
-      const generated = generateTrips(from, to, date);
-      setTrips(generated);
+    async function fetchTrips() {
+      if (from && to && date) {
+        try {
+          const { data, error } = await supabase
+            .from('trips')
+            .select('*, companies(*)')
+            .eq('departure_city', from)
+            .eq('arrival_city', to)
+            .eq('trip_date', date);
+
+          if (error) {
+            console.error("Error fetching trips:", error);
+            return;
+          }
+
+          if (data) {
+            // Map Supabase data to the Trip interface used by the UI
+            const formattedTrips: Trip[] = data.map((t: any) => ({
+              id: t.id,
+              companyName: t.companies.name,
+              companyCode: t.companies.code,
+              departureCity: t.departure_city,
+              arrivalCity: t.arrival_city,
+              departureTime: t.departure_time.substring(0, 5), // 'HH:MM:SS' -> 'HH:MM'
+              arrivalTime: t.arrival_time.substring(0, 5),
+              duration: t.duration,
+              price: t.price,
+              availableSeats: t.available_seats,
+              totalSeats: t.total_seats,
+              occupiedSeats: t.occupied_seats || [],
+              rating: parseFloat(t.companies.rating),
+              amenities: t.companies.amenities || []
+            }));
+            
+            setTrips(formattedTrips);
+          }
+        } catch (err) {
+          console.error("Failed to fetch trips:", err);
+        }
+      }
     }
+
+    fetchTrips();
   }, [from, to, date]);
 
   // Handle operator filter toggle
