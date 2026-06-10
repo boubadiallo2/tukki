@@ -46,7 +46,7 @@ function SearchPageContent() {
         try {
           const { data, error } = await supabase
             .from('trips')
-            .select('*, companies(*)')
+            .select('*, companies(*), bookings(*)')
             .eq('departure_city', from)
             .eq('arrival_city', to)
             .or(`trip_date.eq.${date},is_daily.eq.true`);
@@ -58,22 +58,30 @@ function SearchPageContent() {
 
           if (data) {
             // Map Supabase data to the Trip interface used by the UI
-            const formattedTrips: Trip[] = data.map((t: any) => ({
-              id: t.id,
-              companyName: t.companies.name,
-              companyCode: t.companies.code,
-              departureCity: t.departure_city,
-              arrivalCity: t.arrival_city,
-              departureTime: t.departure_time.substring(0, 5).replace(':', 'h'), // 'HH:MM:SS' -> 'HHhMM'
-              arrivalTime: t.arrival_time.substring(0, 5).replace(':', 'h'),
-              duration: t.duration,
-              price: t.price,
-              availableSeats: t.available_seats,
-              totalSeats: t.total_seats,
-              occupiedSeats: t.occupied_seats || [],
-              rating: parseFloat(t.companies.rating),
-              amenities: t.companies.amenities || []
-            }));
+            const formattedTrips: Trip[] = data.map((t: any) => {
+              const relevantBookings = t.bookings?.filter((b:any) => 
+                b.travel_date === date && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')
+              ) || [];
+              const bookedSeatsCount = relevantBookings.reduce((sum: number, b: any) => sum + (b.selected_seats?.length || 1), 0);
+              const availableSeats = t.total_seats - bookedSeatsCount;
+
+              return {
+                id: t.id,
+                companyName: t.companies.name,
+                companyCode: t.companies.code,
+                departureCity: t.departure_city,
+                arrivalCity: t.arrival_city,
+                departureTime: t.departure_time.substring(0, 5).replace(':', 'h'), // 'HH:MM:SS' -> 'HHhMM'
+                arrivalTime: t.arrival_time.substring(0, 5).replace(':', 'h'),
+                duration: t.duration,
+                price: t.price,
+                availableSeats: availableSeats < 0 ? 0 : availableSeats,
+                totalSeats: t.total_seats,
+                occupiedSeats: [], // Not used here
+                rating: parseFloat(t.companies.rating),
+                amenities: t.companies.amenities || []
+              };
+            });
             
             setTrips(formattedTrips);
           }

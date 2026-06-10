@@ -48,7 +48,7 @@ function BookingPageContent() {
         try {
           const { data, error } = await supabase
             .from('trips')
-            .select('*, companies(*)')
+            .select('*, companies(*), bookings(*)')
             .eq('id', tripId)
             .single();
 
@@ -63,9 +63,9 @@ function BookingPageContent() {
               arrivalTime: data.arrival_time.substring(0, 5),
               duration: data.duration,
               price: data.price,
-              availableSeats: data.available_seats,
+              availableSeats: data.total_seats - (data.bookings?.filter((b:any) => b.travel_date === date && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')).reduce((sum: number, b: any) => sum + (b.selected_seats?.length || 1), 0) || 0),
               totalSeats: data.total_seats,
-              occupiedSeats: data.occupied_seats || [],
+              occupiedSeats: data.bookings?.filter((b:any) => b.travel_date === date && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')).flatMap((b:any) => b.selected_seats || []) || [],
               rating: parseFloat(data.companies.rating),
               amenities: data.companies.amenities || []
             });
@@ -142,6 +142,7 @@ function BookingPageContent() {
           selected_seats: selectedSeats,
           total_price: finalPrice,
           booking_number: randomId,
+          travel_date: date,
         });
 
         if (insertError) {
