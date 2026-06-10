@@ -209,12 +209,16 @@ export default function AdminCompaniesPage() {
       }
 
       // 4. Update the profile with the company_id
-      const { error: profileUpdateError } = await supabase
+      const { data: updatedProfile, error: profileUpdateError } = await supabase
         .from('profiles')
         .update({ company_id: companyData.id })
-        .eq('id', authResult.userId);
+        .eq('id', authResult.userId)
+        .select();
 
       if (profileUpdateError) throw profileUpdateError;
+      if (!updatedProfile || updatedProfile.length === 0) {
+        throw new Error("Compte créé mais impossible de lier la compagnie au profil. Veuillez réessayer ou vérifier les permissions (RLS).");
+      }
 
       setIsModalOpen(false);
       resetForm();
