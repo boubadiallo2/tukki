@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2, Phone } from "lucide-react";
+import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2, Phone, AlertTriangle, Check } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function AdminCompaniesPage() {
@@ -13,6 +13,11 @@ export default function AdminCompaniesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
+
+  // Custom Alert & Delete Modals
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<{id: string, name: string} | null>(null);
+  const [alertContent, setAlertContent] = useState<{title: string, message: React.ReactNode, type?: 'success' | 'error'} | null>(null);
 
   // Form states
   const [newName, setNewName] = useState("");
@@ -45,7 +50,6 @@ export default function AdminCompaniesPage() {
   // Auto-generate company code
   useEffect(() => {
     if (!isCodeManuallyEdited && newName) {
-      // Keep only letters/numbers, take first 4 chars, uppercase
       const autoCode = newName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase();
       setNewCode(autoCode);
     } else if (!newName && !isCodeManuallyEdited) {
@@ -69,22 +73,39 @@ export default function AdminCompaniesPage() {
     setNewCode(company.code);
     setNewOwnerPhone(company.owner_phone || "");
     setNewColor(company.color || "#059669");
-    setIsCodeManuallyEdited(true); // Don't auto-generate when editing
+    setIsCodeManuallyEdited(true);
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteCompany = async (id: string, name: string) => {
-    if (!window.confirm(`⚠️ ATTENTION : Êtes-vous sûr de vouloir supprimer la compagnie "${name}" ?\n\nCette action supprimera également tous ses trajets et réservations associés.`)) {
-      return;
-    }
+  const promptDeleteCompany = (id: string, name: string) => {
+    setCompanyToDelete({ id, name });
+    setIsDeleteModalOpen(true);
+  };
 
+  const confirmDeleteCompany = async () => {
+    if (!companyToDelete) return;
     try {
-      const { error } = await supabase.from('companies').delete().eq('id', id);
+      const { error } = await supabase.from('companies').delete().eq('id', companyToDelete.id);
       if (error) throw error;
+      
+      setIsDeleteModalOpen(false);
+      setCompanyToDelete(null);
       fetchCompanies();
+      
+      setAlertContent({
+        type: 'success',
+        title: "Compagnie supprimée",
+        message: "La compagnie a été retirée de la plateforme avec succès."
+      });
+      
     } catch (err: any) {
       console.error(err);
-      alert("Erreur lors de la suppression : " + err.message);
+      setIsDeleteModalOpen(false);
+      setAlertContent({ 
+        type: 'error',
+        title: "Erreur de suppression", 
+        message: err.message 
+      });
     }
   };
 
@@ -117,6 +138,13 @@ export default function AdminCompaniesPage() {
       setIsEditModalOpen(false);
       resetForm();
       fetchCompanies();
+      
+      setAlertContent({
+        type: 'success',
+        title: "Modifications enregistrées",
+        message: "Les informations de la compagnie ont été mises à jour avec succès."
+      });
+      
     } catch (error: any) {
       console.error(error);
       setErrorMsg(error.message || "Une erreur est survenue");
@@ -169,7 +197,7 @@ export default function AdminCompaniesPage() {
       const authResult = await response.json();
       
       if (!response.ok) {
-        // Rollback : Supprimer la compagnie qui vient d'être créée puisque l'authentification a échoué
+        // Rollback
         await supabase.from('companies').delete().eq('id', companyData.id);
 
         if (authResult.error && authResult.error.toLowerCase().includes("already registered")) {
@@ -188,11 +216,25 @@ export default function AdminCompaniesPage() {
 
       if (profileUpdateError) throw profileUpdateError;
 
-      alert(`Compagnie ajoutée avec succès !\n\nEmail: ${newEmail}\nMot de passe par défaut: ${generatedPassword}\n\nVeuillez transmettre ces identifiants à la compagnie.`);
-      
       setIsModalOpen(false);
       resetForm();
       fetchCompanies(); // Refresh list
+
+      // Custom Success Modal instead of native alert
+      setAlertContent({
+        type: 'success',
+        title: "Compagnie ajoutée avec succès ! 🎉",
+        message: (
+          <div className="space-y-3 mt-4 text-left">
+            <p className="text-gray-600 text-sm">Veuillez transmettre ces identifiants sécurisés au gérant de la compagnie pour qu'il puisse se connecter :</p>
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 font-mono text-sm space-y-2">
+              <p><span className="font-bold text-gray-500 mr-2">Email:</span> <span className="text-slate-900">{newEmail}</span></p>
+              <p><span className="font-bold text-gray-500 mr-2">Mot de passe:</span> <span className="text-brand-green font-black">{generatedPassword}</span></p>
+            </div>
+            <p className="text-xs text-red-500 font-bold mt-2">Attention : Ces identifiants ne s'afficheront qu'une seule fois.</p>
+          </div>
+        )
+      });
 
     } catch (error: any) {
       console.error(error);
@@ -323,7 +365,7 @@ export default function AdminCompaniesPage() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => handleDeleteCompany(company.id, company.name)}
+                        onClick={() => promptDeleteCompany(company.id, company.name)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
                         title="Supprimer"
                       >
@@ -340,19 +382,20 @@ export default function AdminCompaniesPage() {
 
       {/* Modal d'ajout de compagnie */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="text-xl font-black text-gray-900">Nouvelle Compagnie</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200">
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <form onSubmit={handleAddCompany} className="p-6 space-y-4">
               {errorMsg && (
-                <div className="bg-red-50 text-red-600 text-sm font-semibold p-3 rounded-xl border border-red-100">
-                  {errorMsg}
+                <div className="bg-red-50 text-red-600 text-sm font-semibold p-3 rounded-xl border border-red-100 flex items-start space-x-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{errorMsg}</span>
                 </div>
               )}
               
@@ -361,7 +404,7 @@ export default function AdminCompaniesPage() {
                 <input 
                   type="text" required 
                   value={newName} onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
                   placeholder="Ex: Tukki Express"
                 />
               </div>
@@ -375,7 +418,7 @@ export default function AdminCompaniesPage() {
                     setNewCode(e.target.value.toUpperCase());
                     setIsCodeManuallyEdited(true);
                   }}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase font-bold text-brand-green"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white uppercase font-bold text-brand-green transition-all"
                   placeholder="Ex: TUKK"
                 />
               </div>
@@ -385,7 +428,7 @@ export default function AdminCompaniesPage() {
                 <input 
                   type="tel" required 
                   value={newOwnerPhone} onChange={(e) => setNewOwnerPhone(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
                   placeholder="Ex: +221 77 123 45 67"
                 />
               </div>
@@ -395,24 +438,24 @@ export default function AdminCompaniesPage() {
                 <input 
                   type="email" required 
                   value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
                   placeholder="Ex: contact@tukki-express.sn"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-1">Couleur de la marque</label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <input 
                     type="color" 
                     value={newColor} onChange={(e) => setNewColor(e.target.value)}
-                    className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                    className="h-10 w-10 rounded-lg cursor-pointer border-0 p-0"
                   />
-                  <span className="text-sm text-gray-500 font-medium uppercase">{newColor}</span>
+                  <span className="text-sm text-gray-500 font-medium uppercase bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">{newColor}</span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3">
+              <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3 mt-6">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
@@ -423,7 +466,7 @@ export default function AdminCompaniesPage() {
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-brand-green text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-brand-green-dark transition-colors flex items-center space-x-2 disabled:opacity-50"
+                  className="bg-brand-green text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-brand-green-dark transition-colors flex items-center space-x-2 disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>Créer la compagnie</span>
@@ -436,19 +479,20 @@ export default function AdminCompaniesPage() {
 
       {/* Modal de Modification */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="text-xl font-black text-gray-900">Modifier la Compagnie</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200">
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
               {errorMsg && (
-                <div className="bg-red-50 text-red-600 text-sm font-semibold p-3 rounded-xl border border-red-100">
-                  {errorMsg}
+                <div className="bg-red-50 text-red-600 text-sm font-semibold p-3 rounded-xl border border-red-100 flex items-start space-x-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{errorMsg}</span>
                 </div>
               )}
               
@@ -457,7 +501,7 @@ export default function AdminCompaniesPage() {
                 <input 
                   type="text" required 
                   value={newName} onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
                 />
               </div>
               
@@ -470,7 +514,7 @@ export default function AdminCompaniesPage() {
                     setNewCode(e.target.value.toUpperCase());
                     setIsCodeManuallyEdited(true);
                   }}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase font-bold text-brand-green"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white uppercase font-bold text-brand-green transition-all"
                 />
               </div>
 
@@ -479,24 +523,23 @@ export default function AdminCompaniesPage() {
                 <input 
                   type="tel" required 
                   value={newOwnerPhone} onChange={(e) => setNewOwnerPhone(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
-                  placeholder="Ex: +221 77 123 45 67"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-1">Couleur de la marque</label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <input 
                     type="color" 
                     value={newColor} onChange={(e) => setNewColor(e.target.value)}
-                    className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                    className="h-10 w-10 rounded-lg cursor-pointer border-0 p-0"
                   />
-                  <span className="text-sm text-gray-500 font-medium uppercase">{newColor}</span>
+                  <span className="text-sm text-gray-500 font-medium uppercase bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">{newColor}</span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3">
+              <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3 mt-6">
                 <button 
                   type="button" 
                   onClick={() => setIsEditModalOpen(false)}
@@ -507,13 +550,78 @@ export default function AdminCompaniesPage() {
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Enregistrer</span>
+                  <span>Enregistrer les modifications</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Delete Confirmation Modal */}
+      {isDeleteModalOpen && companyToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Supprimer la compagnie ?</h3>
+              <p className="text-sm text-gray-500 font-medium">
+                Vous êtes sur le point de supprimer définitivement <strong className="text-gray-900">{companyToDelete.name}</strong>.
+                <br /><br />
+                <span className="text-red-500 font-bold">Cette action est irréversible</span> et supprimera également tous les trajets et réservations associés à cette compagnie.
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={confirmDeleteCompany}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-red-700 transition-colors"
+              >
+                Oui, supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Success/Alert Message Modal */}
+      {alertContent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              {alertContent.type === 'error' ? (
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-8 h-8 text-red-600" />
+                </div>
+              ) : (
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-emerald-600" />
+                </div>
+              )}
+              
+              <h3 className="text-xl font-black text-gray-900 mb-2">{alertContent.title}</h3>
+              <div className="text-sm text-gray-500 font-medium">
+                {alertContent.message}
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <button 
+                onClick={() => setAlertContent(null)}
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}
