@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, MapPin, Calendar, Clock, CheckCircle, XCircle, MoreVertical, Eye, Download, Loader2, RotateCcw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, MapPin, Calendar, Clock, CheckCircle, XCircle, MoreVertical, Eye, Download, Loader2, RotateCcw, AlertTriangle, Check, X } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function BookingsPage() {
@@ -9,36 +9,112 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Actions menu state
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  
+  // Modals state
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [newDate, setNewDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Alert state
+  const [alertContent, setAlertContent] = useState<{title: string, message: string, type: 'success' | 'error'} | null>(null);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
+    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', session.user.id).single();
+      
+    if (profile?.company_id) {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*, trips!inner(*)')
+        .eq('trips.company_id', profile.company_id)
+        .order('created_at', { ascending: false });
+      
+      if (data) {
+        setBookings(data);
+      }
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId && !(event.target as Element).closest('.actions-dropdown')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenuId]);
+
   const formatTimeFR = (timeString: string) => {
     if (!timeString) return "";
     return timeString.substring(0, 5).replace(':', 'h');
   };
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      
-      const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', session.user.id).single();
-        
-      if (profile?.company_id) {
-        // Fetch bookings for all trips belonging to this company
-        const { data, error } = await supabase
-          .from('bookings')
-          .select('*, trips!inner(*)')
-          .eq('trips.company_id', profile.company_id)
-          .order('created_at', { ascending: false });
-        
-        if (data) {
-          setBookings(data);
-        }
-      }
-      setLoading(false);
-    };
+  const handleCancelBooking = async () => {
+    if (!selectedBooking) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'CANCELLED' })
+        .eq('id', selectedBooking.id);
 
-    fetchBookings();
-  }, []);
+      if (error) throw error;
+
+      setIsCancelModalOpen(false);
+      fetchBookings();
+      setAlertContent({
+        type: 'success',
+        title: "Réservation annulée",
+        message: "La réservation a été annulée avec succès. Les places sont de nouveau disponibles."
+      });
+    } catch (err: any) {
+      console.error(err);
+      setAlertContent({ type: 'error', title: "Erreur", message: err.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChangeDate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBooking || !newDate) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ travel_date: newDate })
+        .eq('id', selectedBooking.id);
+
+      if (error) throw error;
+
+      setIsDateModalOpen(false);
+      fetchBookings();
+      setAlertContent({
+        type: 'success',
+        title: "Date modifiée",
+        message: "La date de voyage a été mise à jour avec succès."
+      });
+    } catch (err: any) {
+      console.error(err);
+      setAlertContent({ type: 'error', title: "Erreur", message: err.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredBookings = bookings.filter(b => 
     b.booking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -48,7 +124,6 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Réservations Clients</h1>
@@ -60,7 +135,6 @@ export default function BookingsPage() {
         </button>
       </div>
 
-      {/* Filters and Search */}
       <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full sm:w-[400px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -82,9 +156,8 @@ export default function BookingsPage() {
         </div>
       </div>
 
-      {/* Bookings List */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] overflow-visible">
+        <div className="overflow-x-auto overflow-y-visible">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -113,21 +186,22 @@ export default function BookingsPage() {
               ) : filteredBookings.map((booking) => {
                 const dateOfTravel = booking.travel_date || booking.trips?.trip_date;
                 const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Tous les jours";
+                const isCancelled = booking.status === 'CANCELLED';
 
                 return (
                 <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-4 pl-6">
                     <div>
-                      <p className="font-black text-brand-green text-sm">{booking.booking_number}</p>
-                      <p className="font-bold text-gray-900 mt-1">{booking.passenger_name}</p>
+                      <p className={`font-black text-sm ${isCancelled ? 'text-gray-400 line-through' : 'text-brand-green'}`}>{booking.booking_number}</p>
+                      <p className={`font-bold mt-1 ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.passenger_name}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{booking.passenger_phone}</p>
                     </div>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-bold text-gray-900">{booking.trips?.departure_city} ➔ {booking.trips?.arrival_city}</p>
+                    <p className={`text-sm font-bold ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.trips?.departure_city} ➔ {booking.trips?.arrival_city}</p>
                     <div className="flex items-center space-x-2 text-xs font-semibold text-gray-500 mt-1">
                       {booking.trips?.is_daily && !booking.travel_date ? (
-                         <span className="flex items-center text-emerald-600 bg-emerald-50 px-1 rounded"><RotateCcw className="w-3 h-3 mr-1" /> Quotidien</span>
+                         <span className={`flex items-center px-1 rounded ${isCancelled ? 'text-gray-400 bg-gray-100' : 'text-emerald-600 bg-emerald-50'}`}><RotateCcw className="w-3 h-3 mr-1" /> Quotidien</span>
                       ) : (
                          <span className="flex items-center"><Calendar className="w-3 h-3 mr-1" /> {formattedDate}</span>
                       )}
@@ -136,41 +210,71 @@ export default function BookingsPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md text-xs font-bold tracking-widest border border-amber-100 whitespace-nowrap">
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-bold tracking-widest border whitespace-nowrap ${isCancelled ? 'bg-gray-50 text-gray-400 border-gray-200' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
                       {booking.selected_seats?.join(", ") || "N/A"}
                     </span>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm font-black text-gray-900">{booking.total_price?.toLocaleString()} FCFA</p>
+                    <p className={`text-sm font-black ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.total_price?.toLocaleString()} FCFA</p>
                     <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Payé par {booking.payment_method || 'Espèces'}</p>
                   </td>
                   <td className="p-4">
-                    {booking.status === 'CONFIRMED' || booking.payment_status === 'PAID' ? (
+                    {!isCancelled ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Confirmé
                       </span>
-                    ) : booking.status === 'CANCELLED' ? (
+                    ) : (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-100">
                         <XCircle className="w-3 h-3 mr-1" />
                         Annulé
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                        <Clock className="w-3 h-3 mr-1" />
-                        En attente
-                      </span>
                     )}
                   </td>
-                  <td className="p-4 pr-6 text-right">
+                  <td className="p-4 pr-6 text-right relative actions-dropdown">
                     <div className="flex items-center justify-end space-x-2">
                       <button className="p-2 text-gray-400 hover:text-brand-green hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" title="Voir les détails">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer" title="Plus d'actions">
+                      <button 
+                        onClick={() => setOpenMenuId(openMenuId === booking.id ? null : booking.id)}
+                        className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer" 
+                        title="Plus d'actions"
+                      >
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
+
+                    {/* Dropdown Menu */}
+                    {openMenuId === booking.id && (
+                      <div className="absolute right-6 top-12 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <button
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            setNewDate(booking.travel_date || booking.trips?.trip_date || "");
+                            setIsDateModalOpen(true);
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span>Modifier la date</span>
+                        </button>
+                        {!isCancelled && (
+                          <button
+                            onClick={() => {
+                              setSelectedBooking(booking);
+                              setIsCancelModalOpen(true);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                          >
+                            <XCircle className="w-4 h-4 text-red-500" />
+                            <span>Annuler réservation</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               )})}
@@ -178,6 +282,112 @@ export default function BookingsPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal d'annulation */}
+      {isCancelModalOpen && selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Annuler la réservation ?</h3>
+              <p className="text-sm text-gray-500 font-medium">
+                Voulez-vous vraiment annuler la réservation <strong className="text-gray-900">{selectedBooking.booking_number}</strong> de <strong className="text-gray-900">{selectedBooking.passenger_name}</strong> ?
+                <br /><br />
+                Les sièges redeviendront disponibles à la vente.
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
+              <button 
+                onClick={() => setIsCancelModalOpen(false)}
+                className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
+              >
+                Retour
+              </button>
+              <button 
+                onClick={handleCancelBooking}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Oui, annuler"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Modifier Date */}
+      {isDateModalOpen && selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-black text-gray-900">Modifier la date</h3>
+              <button onClick={() => setIsDateModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleChangeDate} className="p-6 space-y-4">
+              <p className="text-sm text-gray-500 font-medium mb-4">
+                Changement de date pour la réservation <strong className="text-gray-900">{selectedBooking.booking_number}</strong>.
+              </p>
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Nouvelle date de voyage</label>
+                <input 
+                  type="date" required 
+                  value={newDate} onChange={(e) => setNewDate(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+                />
+              </div>
+              <div className="pt-4 flex justify-end space-x-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsDateModalOpen(false)}
+                  className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-brand-green hover:bg-brand-green-dark text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center space-x-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Enregistrer</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      {alertContent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              {alertContent.type === 'error' ? (
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-8 h-8 text-red-600" />
+                </div>
+              ) : (
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-emerald-600" />
+                </div>
+              )}
+              <h3 className="text-xl font-black text-gray-900 mb-2">{alertContent.title}</h3>
+              <p className="text-sm text-gray-500 font-medium">{alertContent.message}</p>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <button 
+                onClick={() => setAlertContent(null)}
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
