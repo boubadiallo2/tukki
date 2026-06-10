@@ -52,7 +52,15 @@ export default function AdminCompaniesPage() {
         .select()
         .single();
 
-      if (companyError) throw companyError;
+      if (companyError) {
+        if (companyError.code === '23505' || companyError.message.includes('duplicate key')) {
+          if (companyError.message.includes('companies_code_key')) {
+            throw new Error("Ce code de compagnie est déjà utilisé. Veuillez en choisir un autre.");
+          }
+          throw new Error("Cette compagnie existe déjà.");
+        }
+        throw companyError;
+      }
 
       // 2. Generate a random secure password
       const generatedPassword = `Tukki2026!${Math.floor(Math.random() * 1000)}`;
@@ -70,6 +78,9 @@ export default function AdminCompaniesPage() {
       const authResult = await response.json();
       
       if (!response.ok) {
+        if (authResult.error && authResult.error.toLowerCase().includes("already registered")) {
+          throw new Error("Cette adresse email existe déjà. Veuillez utiliser un autre email.");
+        }
         throw new Error(authResult.error || "Erreur lors de la création du compte auth");
       }
 
