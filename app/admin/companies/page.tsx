@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2 } from "lucide-react";
+import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2, Phone } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function AdminCompaniesPage() {
@@ -18,7 +18,10 @@ export default function AdminCompaniesPage() {
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newOwnerPhone, setNewOwnerPhone] = useState("");
   const [newColor, setNewColor] = useState("#059669");
+  const [isCodeManuallyEdited, setIsCodeManuallyEdited] = useState(false);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -39,11 +42,24 @@ export default function AdminCompaniesPage() {
     fetchCompanies();
   }, []);
 
+  // Auto-generate company code
+  useEffect(() => {
+    if (!isCodeManuallyEdited && newName) {
+      // Keep only letters/numbers, take first 4 chars, uppercase
+      const autoCode = newName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase();
+      setNewCode(autoCode);
+    } else if (!newName && !isCodeManuallyEdited) {
+      setNewCode("");
+    }
+  }, [newName, isCodeManuallyEdited]);
+
   const resetForm = () => {
     setNewName("");
     setNewCode("");
     setNewEmail("");
+    setNewOwnerPhone("");
     setNewColor("#059669");
+    setIsCodeManuallyEdited(false);
     setErrorMsg("");
   };
 
@@ -51,7 +67,9 @@ export default function AdminCompaniesPage() {
     setEditingCompanyId(company.id);
     setNewName(company.name);
     setNewCode(company.code);
+    setNewOwnerPhone(company.owner_phone || "");
     setNewColor(company.color || "#059669");
+    setIsCodeManuallyEdited(true); // Don't auto-generate when editing
     setIsEditModalOpen(true);
   };
 
@@ -81,7 +99,8 @@ export default function AdminCompaniesPage() {
         .update({
           name: newName,
           code: newCode,
-          color: newColor
+          color: newColor,
+          owner_phone: newOwnerPhone
         })
         .eq('id', editingCompanyId);
 
@@ -118,7 +137,8 @@ export default function AdminCompaniesPage() {
         .insert({
           name: newName,
           code: newCode,
-          color: newColor
+          color: newColor,
+          owner_phone: newOwnerPhone
         })
         .select()
         .single();
@@ -224,7 +244,7 @@ export default function AdminCompaniesPage() {
               <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
                 <th className="p-4 pl-6">Compagnie & Code</th>
                 <th className="p-4">Statistiques</th>
-                <th className="p-4">Contact (Email Admin)</th>
+                <th className="p-4">Contact & Propriétaire</th>
                 <th className="p-4">Statut</th>
                 <th className="p-4 pr-6 text-right">Actions</th>
               </tr>
@@ -269,10 +289,18 @@ export default function AdminCompaniesPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-sm font-medium text-gray-700">
-                    {company.profiles && company.profiles.length > 0 
-                      ? company.profiles[0].email 
-                      : <span className="text-gray-400 italic">Aucun compte lié</span>}
+                  <td className="p-4">
+                    <div className="text-sm font-medium text-gray-700">
+                      {company.profiles && company.profiles.length > 0 
+                        ? company.profiles[0].email 
+                        : <span className="text-gray-400 italic">Aucun email lié</span>}
+                    </div>
+                    {company.owner_phone && (
+                      <div className="flex items-center text-xs text-gray-500 mt-1 font-semibold">
+                        <Phone className="w-3 h-3 mr-1" />
+                        {company.owner_phone}
+                      </div>
+                    )}
                   </td>
                   <td className="p-4">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -334,12 +362,26 @@ export default function AdminCompaniesPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Code Compagnie (3-4 lettres)</label>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Code Compagnie (Généré auto.)</label>
                 <input 
                   type="text" required maxLength={5}
-                  value={newCode} onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase"
-                  placeholder="Ex: TUK"
+                  value={newCode} 
+                  onChange={(e) => {
+                    setNewCode(e.target.value.toUpperCase());
+                    setIsCodeManuallyEdited(true);
+                  }}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase font-bold text-brand-green"
+                  placeholder="Ex: TUKK"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Téléphone du propriétaire</label>
+                <input 
+                  type="tel" required 
+                  value={newOwnerPhone} onChange={(e) => setNewOwnerPhone(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                  placeholder="Ex: +221 77 123 45 67"
                 />
               </div>
 
@@ -418,8 +460,22 @@ export default function AdminCompaniesPage() {
                 <label className="block text-sm font-bold text-gray-900 mb-1">Code Compagnie (3-4 lettres)</label>
                 <input 
                   type="text" required maxLength={5}
-                  value={newCode} onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase"
+                  value={newCode} 
+                  onChange={(e) => {
+                    setNewCode(e.target.value.toUpperCase());
+                    setIsCodeManuallyEdited(true);
+                  }}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase font-bold text-brand-green"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Téléphone du propriétaire</label>
+                <input 
+                  type="tel" required 
+                  value={newOwnerPhone} onChange={(e) => setNewOwnerPhone(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                  placeholder="Ex: +221 77 123 45 67"
                 />
               </div>
 
