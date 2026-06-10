@@ -71,12 +71,12 @@ export default function AdminLayout({
           />
           <aside className="relative flex-1 max-w-[280px] w-full bg-[#0F172A] text-slate-300 flex flex-col h-full transform transition-transform duration-300 ease-in-out">
             <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
-              <Link href="/" className="flex items-center space-x-2 text-white">
+              <div className="flex items-center space-x-2 text-white cursor-default">
                 <Compass className="w-6 h-6 text-brand-yellow" />
                 <span className="text-xl font-black tracking-tight">
                   TUKKI <span className="text-brand-yellow text-[10px] uppercase tracking-widest block font-bold">Super Admin</span>
                 </span>
-              </Link>
+              </div>
               <button
                 className="ml-auto text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-lg"
                 onClick={() => setSidebarOpen(false)}
@@ -121,12 +121,12 @@ export default function AdminLayout({
       {/* Desktop Sidebar (Dark Theme for Super Admin) */}
       <aside className="hidden lg:flex flex-col w-[260px] bg-[#0F172A] text-slate-300 z-40 shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
-          <Link href="/" className="flex items-center space-x-2 text-white hover:text-slate-200 transition-colors">
+          <div className="flex items-center space-x-2 text-white cursor-default transition-colors">
             <Compass className="w-6 h-6 text-brand-yellow" />
             <span className="text-xl font-black tracking-tight">
               TUKKI <span className="text-brand-yellow text-[10px] uppercase tracking-widest block font-bold leading-tight">Super Admin</span>
             </span>
-          </Link>
+          </div>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">

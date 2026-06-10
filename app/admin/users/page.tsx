@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
     // Fetch profiles and join with companies table to get company name if applicable
     const { data } = await supabase
       .from('profiles')
-      .select('*, companies(name, color)')
+      .select('*, companies(name, color, owner_name)')
       .order('created_at', { ascending: false });
 
     setProfiles(data || []);
@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
     const headers = ["Nom Complet", "Email", "Rôle", "Compagnie", "Date d'inscription"];
     
     const rows = filteredProfiles.map(p => [
-      `"${p.full_name || 'Sans nom'}"`,
+      `"${p.full_name || p.companies?.owner_name || 'Sans nom'}"`,
       p.email,
       p.role === 'super_admin' ? 'Super Admin' : p.role === 'company' ? 'Partenaire' : 'Client',
       `"${p.companies?.name || '-'}"`,
@@ -198,7 +198,7 @@ export default function AdminUsersPage() {
                           <Users className="w-5 h-5 text-slate-400" />
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 text-sm">{profile.full_name || 'Sans nom'}</p>
+                          <p className="font-black text-slate-900 text-sm">{profile.full_name || profile.companies?.owner_name || 'Sans nom'}</p>
                           <p className="text-xs font-medium text-slate-500">{profile.email}</p>
                         </div>
                       </div>
