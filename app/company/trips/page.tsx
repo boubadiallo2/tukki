@@ -224,6 +224,102 @@ export default function TripsPage() {
     t.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderFormContent = (isEdit: boolean) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-1">Ville de départ</label>
+          <select 
+            required 
+            value={newFrom} onChange={(e) => setNewFrom(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          >
+            {CITIES.map(city => <option key={city} value={city}>{city}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-1">Ville d'arrivée</label>
+          <select 
+            required 
+            value={newTo} onChange={(e) => setNewTo(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          >
+            {CITIES.map(city => <option key={city} value={city}>{city}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-900 mb-1">Date du départ</label>
+        <input 
+          type="date" required 
+          value={newDate} onChange={(e) => setNewDate(e.target.value)}
+          className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-1">Heure de départ</label>
+          <input 
+            type="time" required 
+            value={newDepTime} onChange={(e) => setNewDepTime(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-1">Heure d'arrivée</label>
+          <input 
+            type="time" required 
+            value={newArrTime} onChange={(e) => setNewArrTime(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-1">Prix du billet (FCFA)</label>
+          <input 
+            type="number" required min="500" step="100"
+            value={newPrice} onChange={(e) => setNewPrice(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            placeholder="Ex: 5000"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-1">Nombre de places</label>
+          <input 
+            type="number" required min="1" max="100"
+            value={newTotalSeats} onChange={(e) => setNewTotalSeats(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            placeholder="Ex: 50"
+          />
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3 mt-6">
+        <button 
+          type="button" 
+          onClick={() => isEdit ? setIsEditModalOpen(false) : setIsModalOpen(false)}
+          className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          Annuler
+        </button>
+        <button 
+          type="submit" 
+          disabled={isSubmitting}
+          className={`text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center space-x-2 disabled:opacity-50 ${
+            isEdit ? "bg-blue-600 hover:bg-blue-700" : "bg-brand-green hover:bg-brand-green-dark"
+          }`}
+        >
+          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+          <span>{isEdit ? "Enregistrer" : "Créer le trajet"}</span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Page Header */}
@@ -350,102 +446,7 @@ export default function TripsPage() {
         </div>
       </div>
 
-      {/* Reusable Form Content for Modals */}
-      {const renderFormContent = (isEdit: boolean) => (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-1">Ville de départ</label>
-              <select 
-                required 
-                value={newFrom} onChange={(e) => setNewFrom(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-              >
-                {CITIES.map(city => <option key={city} value={city}>{city}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-1">Ville d'arrivée</label>
-              <select 
-                required 
-                value={newTo} onChange={(e) => setNewTo(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-              >
-                {CITIES.map(city => <option key={city} value={city}>{city}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-1">Date du départ</label>
-            <input 
-              type="date" required 
-              value={newDate} onChange={(e) => setNewDate(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-1">Heure de départ</label>
-              <input 
-                type="time" required 
-                value={newDepTime} onChange={(e) => setNewDepTime(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-1">Heure d'arrivée</label>
-              <input 
-                type="time" required 
-                value={newArrTime} onChange={(e) => setNewArrTime(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-1">Prix du billet (FCFA)</label>
-              <input 
-                type="number" required min="500" step="100"
-                value={newPrice} onChange={(e) => setNewPrice(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                placeholder="Ex: 5000"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-1">Nombre de places</label>
-              <input 
-                type="number" required min="1" max="100"
-                value={newTotalSeats} onChange={(e) => setNewTotalSeats(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-                placeholder="Ex: 50"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3 mt-6">
-            <button 
-              type="button" 
-              onClick={() => isEdit ? setIsEditModalOpen(false) : setIsModalOpen(false)}
-              className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Annuler
-            </button>
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className={`text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center space-x-2 disabled:opacity-50 ${
-                isEdit ? "bg-blue-600 hover:bg-blue-700" : "bg-brand-green hover:bg-brand-green-dark"
-              }`}
-            >
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>{isEdit ? "Enregistrer" : "Créer le trajet"}</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Modal d'ajout de trajet */}
       {isModalOpen && (
