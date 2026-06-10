@@ -169,8 +169,13 @@ export default function AdminCompaniesPage() {
       const authResult = await response.json();
       
       if (!response.ok) {
+        // Rollback : Supprimer la compagnie qui vient d'être créée puisque l'authentification a échoué
+        await supabase.from('companies').delete().eq('id', companyData.id);
+
         if (authResult.error && authResult.error.toLowerCase().includes("already registered")) {
           throw new Error("Cette adresse email existe déjà. Veuillez utiliser un autre email.");
+        } else if (authResult.error && authResult.error.toLowerCase().includes("rate limit")) {
+          throw new Error("Limite de sécurité Supabase atteinte (trop d'emails envoyés). Allez dans Supabase > Authentication > Providers > Email, et désactivez 'Confirm email' pour continuer à tester sans limite.");
         }
         throw new Error(authResult.error || "Erreur lors de la création du compte auth");
       }
