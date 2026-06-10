@@ -23,7 +23,8 @@ export default async function AdminDashboardPage() {
   // Calculate total revenue from CONFIRMED bookings
   const confirmedBookings = bookings?.filter(b => b.status === 'CONFIRMED') || [];
   const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-  const platformRevenue = totalRevenue * 0.10; // Assuming 10% platform fee
+  const totalTickets = confirmedBookings.reduce((sum, b) => sum + (b.selected_seats?.length || 1), 0);
+  const platformRevenue = totalTickets * 100; // 100 FCFA per ticket
 
   const STATS = [
     {
@@ -36,7 +37,7 @@ export default async function AdminDashboardPage() {
       bgColor: "bg-slate-100"
     },
     {
-      title: "Revenus Plateforme (10%)",
+      title: "Revenus Plateforme (100F/billet)",
       value: `${platformRevenue.toLocaleString('fr-FR')} FCFA`,
       change: "+18.5%",
       isPositive: true,
