@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   Map, 
@@ -14,6 +14,7 @@ import {
   Bus,
   Bell
 } from "lucide-react";
+import { supabase } from "@/app/lib/supabaseClient";
 
 export default function CompanyLayout({
   children,
@@ -21,7 +22,38 @@ export default function CompanyLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUserCompany = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profile?.company_id) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', profile.company_id)
+          .single();
+          
+        if (company) setCompanyInfo(company);
+      }
+    };
+    fetchUserCompany();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   const navigation = [
     { name: "Tableau de bord", href: "/company/dashboard", icon: LayoutDashboard },
@@ -75,7 +107,7 @@ export default function CompanyLayout({
               })}
             </nav>
             <div className="p-4 border-t border-gray-100 shrink-0">
-              <button className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors">
+              <button onClick={handleLogout} className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors">
                 <LogOut className="w-5 h-5" />
                 <span>Déconnexion</span>
               </button>
@@ -116,7 +148,7 @@ export default function CompanyLayout({
         </nav>
 
         <div className="p-4 border-t border-gray-100 shrink-0">
-          <button className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors">
+          <button onClick={handleLogout} className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors">
             <LogOut className="w-5 h-5" />
             <span>Déconnexion</span>
           </button>
@@ -139,11 +171,14 @@ export default function CompanyLayout({
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
-            <div className="h-8 w-8 rounded-full bg-brand-yellow/20 flex items-center justify-center border border-brand-yellow/30 text-brand-yellow font-bold text-sm">
-              TE
+            <div 
+              className="h-8 w-8 rounded-full flex items-center justify-center border font-bold text-sm text-white shadow-sm"
+              style={{ backgroundColor: companyInfo?.color || '#059669', borderColor: companyInfo?.color || '#059669' }}
+            >
+              {companyInfo?.name?.substring(0, 2).toUpperCase() || '..'}
             </div>
             <div className="hidden sm:block text-sm">
-              <p className="font-bold text-gray-900">Tukki Express</p>
+              <p className="font-bold text-gray-900">{companyInfo?.name || 'Chargement...'}</p>
               <p className="text-xs text-gray-500">Administrateur</p>
             </div>
           </div>

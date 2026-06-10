@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { 
   TrendingUp, 
   Users, 
@@ -5,76 +8,12 @@ import {
   ArrowUpRight,
   Bus,
   Clock,
-  MoreVertical
+  Plus
 } from "lucide-react";
+import { supabase } from "@/app/lib/supabaseClient";
+import Link from "next/link";
 
-const STATS = [
-  {
-    title: "Revenu du Jour",
-    value: "450,000 FCFA",
-    change: "+12.5%",
-    isPositive: true,
-    icon: Wallet,
-    color: "text-brand-green",
-    bgColor: "bg-emerald-50"
-  },
-  {
-    title: "Billets Vendus",
-    value: "128",
-    change: "+5.2%",
-    isPositive: true,
-    icon: TicketIcon,
-    color: "text-brand-yellow",
-    bgColor: "bg-amber-50"
-  },
-  {
-    title: "Passagers Uniques",
-    value: "115",
-    change: "-2.1%",
-    isPositive: false,
-    icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50"
-  },
-  {
-    title: "Taux de Remplissage",
-    value: "84%",
-    change: "+8.4%",
-    isPositive: true,
-    icon: TrendingUp,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50"
-  }
-];
-
-const DEPARTURES = [
-  {
-    id: "TR-102",
-    route: "Dakar ➔ Saint-Louis",
-    time: "14:15",
-    bus: "Bus Climatisé - 50 places",
-    booked: 45,
-    status: "En attente"
-  },
-  {
-    id: "TR-105",
-    route: "Dakar ➔ Touba",
-    time: "15:30",
-    bus: "Minibus VIP - 15 places",
-    booked: 15,
-    status: "Complet"
-  },
-  {
-    id: "TR-108",
-    route: "Thiès ➔ Dakar",
-    time: "16:00",
-    bus: "Bus Standard - 50 places",
-    booked: 28,
-    status: "En attente"
-  }
-];
-
-// Defining TicketIcon since it's used in STATS but we imported other icons.
+// Defining TicketIcon since it's used in STATS
 function TicketIcon(props: any) {
   return (
     <svg
@@ -98,12 +37,147 @@ function TicketIcon(props: any) {
 }
 
 export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  
+  const [stats, setStats] = useState({
+    revenue: 0,
+    tickets: 0,
+    passengers: 0,
+    occupancyRate: 0
+  });
+  
+  const [departures, setDepartures] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profile?.company_id) {
+        // Fetch company name
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', profile.company_id)
+          .single();
+          
+        if (company) setCompanyInfo(company);
+
+        // Fetch real trips and bookings
+        // We'll try to fetch trips with bookings if they exist
+        const { data: trips, error } = await supabase
+          .from('trips')
+          .select('*, bookings(*)')
+          .eq('company_id', profile.company_id);
+          
+        if (trips && trips.length > 0) {
+           let totalRevenue = 0;
+           let totalTickets = 0;
+           let uniqueUsers = new Set();
+           
+           trips.forEach(trip => {
+             if (trip.bookings) {
+               trip.bookings.forEach((b: any) => {
+                 // Assuming we count paid/confirmed bookings
+                 if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
+                   totalRevenue += b.total_price || trip.price || 0;
+                   totalTickets += 1;
+                   if (b.user_id) uniqueUsers.add(b.user_id);
+                 }
+               });
+             }
+           });
+           
+           setStats({
+             revenue: totalRevenue,
+             tickets: totalTickets,
+             passengers: uniqueUsers.size,
+             occupancyRate: 0 // Would be calculated with seats_available + booked
+           });
+
+           // Get upcoming trips
+           const upcoming = trips
+             .filter(t => new Date(t.departure_time) >= new Date())
+             .sort((a,b) => new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime())
+             .slice(0, 5);
+             
+           setDepartures(upcoming);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const STATS_UI = [
+    {
+      title: "Revenu Total",
+      value: `${stats.revenue.toLocaleString()} FCFA`,
+      change: stats.revenue > 0 ? "+0%" : "0%",
+      isPositive: true,
+      icon: Wallet,
+      color: "text-brand-green",
+      bgColor: "bg-emerald-50"
+    },
+    {
+      title: "Billets Vendus",
+      value: stats.tickets.toString(),
+      change: "0%",
+      isPositive: true,
+      icon: TicketIcon,
+      color: "text-brand-yellow",
+      bgColor: "bg-amber-50"
+    },
+    {
+      title: "Passagers Uniques",
+      value: stats.passengers.toString(),
+      change: "0%",
+      isPositive: true,
+      icon: Users,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50"
+    },
+    {
+      title: "Taux de Remplissage",
+      value: `${stats.occupancyRate}%`,
+      change: "0%",
+      isPositive: true,
+      icon: TrendingUp,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50"
+    }
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-green"></div>
+      </div>
+    );
+  }
+
+  const hasData = stats.tickets > 0 || departures.length > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Bonjour, Tukki Express 👋</h1>
-          <p className="text-sm text-gray-500 font-medium mt-1">Voici le résumé de votre activité aujourd'hui.</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+            Bonjour, {companyInfo?.name || "Partenaire"} 👋
+          </h1>
+          <p className="text-sm text-gray-500 font-medium mt-1">
+            Voici le résumé de votre activité.
+          </p>
         </div>
         <button className="bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2">
           <span>Exporter le rapport</span>
@@ -112,7 +186,7 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {STATS.map((stat, index) => (
+        {STATS_UI.map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between mb-6">
               <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.color}`}>
@@ -133,70 +207,94 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart Area (Placeholder) */}
+        
+        {/* Ventes / Graphique */}
         <div className="lg:col-span-2 bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-lg font-black text-gray-900">Ventes de la semaine</h2>
-            <select className="bg-gray-50 border border-gray-100 text-gray-600 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-hidden focus:border-brand-green">
-              <option>Cette semaine</option>
-              <option>Semaine dernière</option>
-            </select>
+            {hasData && (
+              <select className="bg-gray-50 border border-gray-100 text-gray-600 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-hidden focus:border-brand-green">
+                <option>Cette semaine</option>
+                <option>Semaine dernière</option>
+              </select>
+            )}
           </div>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {/* Simple bar chart mock */}
-            {[40, 70, 45, 90, 65, 80, 100].map((height, i) => (
-              <div key={i} className="w-full flex flex-col justify-end items-center group">
-                <div 
-                  className="w-full bg-brand-green/20 group-hover:bg-brand-green rounded-t-sm transition-colors relative"
-                  style={{ height: `${height}%` }}
-                >
-                  <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {height * 10}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-gray-400 mt-2">
-                  {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][i]}
-                </span>
+
+          {!hasData ? (
+            <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                <TrendingUp className="w-8 h-8 text-gray-300" />
               </div>
-            ))}
+              <h3 className="text-base font-bold text-gray-900 mb-1">Aucune vente pour le moment</h3>
+              <p className="text-sm text-gray-500 max-w-sm mb-6">
+                Le graphique de vos ventes apparaîtra ici dès que vos premiers clients réserveront vos trajets.
+              </p>
+              <Link 
+                href="/company/trips"
+                className="inline-flex items-center space-x-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Créer mon premier trajet</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="h-64 flex items-end justify-between gap-2">
+              {/* Le faux graphique a été masqué car il n'y a pas de vraies données par jour encore */}
+              <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400 border border-dashed border-gray-200 rounded-xl">
+                Graphique en construction (données réelles)
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Prochains Départs */}
+        <div className="bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-black text-gray-900">Prochains départs</h2>
+            {departures.length > 0 && (
+              <Link href="/company/trips" className="text-brand-green hover:underline text-xs font-bold">Voir tout</Link>
+            )}
+          </div>
+          
+          <div className="space-y-4 flex-1">
+            {!hasData || departures.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center">
+                <Bus className="w-10 h-10 text-gray-200 mb-3" />
+                <p className="text-sm font-bold text-gray-400">Aucun départ prévu</p>
+              </div>
+            ) : (
+              departures.map((departure) => (
+                <div key={departure.id} className="flex items-start justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-emerald-50 text-brand-green p-2 rounded-lg mt-0.5">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-gray-900">
+                        {new Date(departure.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </p>
+                      <p className="text-xs font-bold text-gray-600 mt-0.5">
+                        {/* Fallback en attendant d'avoir les vrais noms de gares */}
+                        Trajet #{departure.id.substring(0, 5)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                      Prévu
+                    </span>
+                    <p className="text-xs font-bold text-gray-500 mt-1">
+                      {departure.bookings?.length || 0} résa.
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Next Departures */}
-        <div className="bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-black text-gray-900">Prochains départs</h2>
-            <button className="text-brand-green hover:underline text-xs font-bold">Voir tout</button>
-          </div>
-          <div className="space-y-4">
-            {DEPARTURES.map((departure) => (
-              <div key={departure.id} className="flex items-start justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-                <div className="flex items-start space-x-3">
-                  <div className="bg-emerald-50 text-brand-green p-2 rounded-lg mt-0.5">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-gray-900">{departure.time}</p>
-                    <p className="text-xs font-bold text-gray-600 mt-0.5">{departure.route}</p>
-                    <div className="flex items-center space-x-1 text-[10px] text-gray-400 mt-1">
-                      <Bus className="w-3 h-3" />
-                      <span>{departure.bus}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                    departure.status === 'Complet' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-                  }`}>
-                    {departure.status}
-                  </span>
-                  <p className="text-xs font-bold text-gray-500 mt-1">{departure.booked} résa.</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
