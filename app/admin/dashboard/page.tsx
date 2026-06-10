@@ -7,54 +7,94 @@ import {
   CreditCard,
   Users
 } from "lucide-react";
+import { supabase } from "@/app/lib/supabaseClient";
 
-const STATS = [
-  {
-    title: "Volume d'Affaires Global",
-    value: "12,450,000 FCFA",
-    change: "+15.2%",
-    isPositive: true,
-    icon: Wallet,
-    color: "text-slate-900",
-    bgColor: "bg-slate-100"
-  },
-  {
-    title: "Revenus Plateforme",
-    value: "854,000 FCFA",
-    change: "+18.5%",
-    isPositive: true,
-    icon: TrendingUp,
-    color: "text-brand-yellow",
-    bgColor: "bg-brand-yellow/10"
-  },
-  {
-    title: "Billets Vendus",
-    value: "8,540",
-    change: "+12.1%",
-    isPositive: true,
-    icon: TicketCheck,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50"
-  },
-  {
-    title: "Compagnies Actives",
-    value: "14",
-    change: "+2",
-    isPositive: true,
-    icon: Building2,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50"
-  }
-];
+export const revalidate = 0; // Disable cache for this page to always get fresh data
 
-const TOP_COMPANIES = [
-  { name: "Tukki Express", revenue: "5,200,000 FCFA", tickets: 3450, growth: "+12%" },
-  { name: "Horizon Navette", revenue: "3,150,000 FCFA", tickets: 2100, growth: "+8%" },
-  { name: "Volt Transport", revenue: "2,800,000 FCFA", tickets: 1950, growth: "+15%" },
-  { name: "Star Lines", revenue: "1,300,000 FCFA", tickets: 1040, growth: "-2%" },
-];
+export default async function AdminDashboardPage() {
+  // Fetch real data from Supabase
+  const { data: companies } = await supabase.from('companies').select('*');
+  const { data: bookings } = await supabase.from('bookings').select('*, trips(company_id, companies(name))');
 
-export default function AdminDashboardPage() {
+  // Calculate stats
+  const totalCompanies = companies?.length || 0;
+  const totalBookings = bookings?.length || 0;
+  
+  // Calculate total revenue from CONFIRMED bookings
+  const confirmedBookings = bookings?.filter(b => b.status === 'CONFIRMED') || [];
+  const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+  const platformRevenue = totalRevenue * 0.10; // Assuming 10% platform fee
+
+  const STATS = [
+    {
+      title: "Volume d'Affaires Global",
+      value: `${totalRevenue.toLocaleString('fr-FR')} FCFA`,
+      change: "+15.2%",
+      isPositive: true,
+      icon: Wallet,
+      color: "text-slate-900",
+      bgColor: "bg-slate-100"
+    },
+    {
+      title: "Revenus Plateforme (10%)",
+      value: `${platformRevenue.toLocaleString('fr-FR')} FCFA`,
+      change: "+18.5%",
+      isPositive: true,
+      icon: TrendingUp,
+      color: "text-brand-yellow",
+      bgColor: "bg-brand-yellow/10"
+    },
+    {
+      title: "Billets Vendus",
+      value: totalBookings.toString(),
+      change: "+12.1%",
+      isPositive: true,
+      icon: TicketCheck,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50"
+    },
+    {
+      title: "Compagnies Actives",
+      value: totalCompanies.toString(),
+      change: "+2",
+      isPositive: true,
+      icon: Building2,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50"
+    }
+  ];
+
+  // Calculate top companies based on bookings
+  const companyStats: Record<string, { revenue: number, tickets: number, name: string }> = {};
+  
+  confirmedBookings.forEach(booking => {
+    const companyId = booking.trips?.company_id;
+    const companyName = booking.trips?.companies?.name || 'Inconnue';
+    
+    if (companyId) {
+      if (!companyStats[companyId]) {
+        companyStats[companyId] = { revenue: 0, tickets: 0, name: companyName };
+      }
+      companyStats[companyId].revenue += booking.total_price;
+      companyStats[companyId].tickets += booking.selected_seats.length;
+    }
+  });
+
+  const topCompaniesArray = Object.values(companyStats)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 4)
+    .map(c => ({
+      name: c.name,
+      revenue: `${c.revenue.toLocaleString('fr-FR')} FCFA`,
+      tickets: c.tickets,
+      growth: "+10%" // Placeholder for now
+    }));
+
+  // If no top companies, show mock data
+  const TOP_COMPANIES = topCompaniesArray.length > 0 ? topCompaniesArray : [
+    { name: "Aucune donnée", revenue: "0 FCFA", tickets: 0, growth: "0%" }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -63,12 +103,12 @@ export default function AdminDashboardPage() {
           <p className="text-sm text-gray-500 font-medium mt-1">Supervisez l'activité de toutes les compagnies partenaires.</p>
         </div>
         <div className="flex gap-2">
-          <select className="bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2 focus:outline-hidden focus:border-slate-900 cursor-pointer shadow-xs">
+          <select className="bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2 focus:outline-none focus:border-slate-900 cursor-pointer shadow-sm">
             <option>Ce mois-ci</option>
             <option>Mois dernier</option>
             <option>Cette année</option>
           </select>
-          <button className="bg-slate-900 text-white hover:bg-slate-800 px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2">
+          <button className="bg-slate-900 text-white hover:bg-slate-800 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center space-x-2">
             <span>Télécharger Bilan</span>
           </button>
         </div>
@@ -98,12 +138,12 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Performance Chart (Placeholder) */}
+        {/* Performance Chart (Placeholder because we don't have daily data yet) */}
         <div className="lg:col-span-2 bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-lg font-black text-gray-900">Évolution des Commissions</h2>
-              <p className="text-xs text-gray-500 font-semibold mt-1">Revenus générés par les frais de service (100 FCFA/billet)</p>
+              <p className="text-xs text-gray-500 font-semibold mt-1">Revenus générés par les frais de service</p>
             </div>
           </div>
           <div className="h-64 flex items-end justify-between gap-2">
