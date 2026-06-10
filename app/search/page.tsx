@@ -49,7 +49,7 @@ function SearchPageContent() {
             .select('*, companies(*)')
             .eq('departure_city', from)
             .eq('arrival_city', to)
-            .eq('trip_date', date);
+            .or(`trip_date.eq.${date},is_daily.eq.true`);
 
           if (error) {
             console.error("Error fetching trips:", error);
@@ -64,8 +64,8 @@ function SearchPageContent() {
               companyCode: t.companies.code,
               departureCity: t.departure_city,
               arrivalCity: t.arrival_city,
-              departureTime: t.departure_time.substring(0, 5), // 'HH:MM:SS' -> 'HH:MM'
-              arrivalTime: t.arrival_time.substring(0, 5),
+              departureTime: t.departure_time.substring(0, 5).replace(':', 'h'), // 'HH:MM:SS' -> 'HHhMM'
+              arrivalTime: t.arrival_time.substring(0, 5).replace(':', 'h'),
               duration: t.duration,
               price: t.price,
               availableSeats: t.available_seats,
