@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Building2, MapPin, Bus, CheckCircle, XCircle, MoreVertical, Eye, Plus, X, Loader2 } from "lucide-react";
+import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function AdminCompaniesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
 
   // Form states
   const [newName, setNewName] = useState("");
@@ -34,6 +38,73 @@ export default function AdminCompaniesPage() {
   useEffect(() => {
     fetchCompanies();
   }, []);
+
+  const resetForm = () => {
+    setNewName("");
+    setNewCode("");
+    setNewEmail("");
+    setNewColor("#059669");
+    setErrorMsg("");
+  };
+
+  const openEditModal = (company: any) => {
+    setEditingCompanyId(company.id);
+    setNewName(company.name);
+    setNewCode(company.code);
+    setNewColor(company.color || "#059669");
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteCompany = async (id: string, name: string) => {
+    if (!window.confirm(`⚠️ ATTENTION : Êtes-vous sûr de vouloir supprimer la compagnie "${name}" ?\n\nCette action supprimera également tous ses trajets et réservations associés.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('companies').delete().eq('id', id);
+      if (error) throw error;
+      fetchCompanies();
+    } catch (err: any) {
+      console.error(err);
+      alert("Erreur lors de la suppression : " + err.message);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          name: newName,
+          code: newCode,
+          color: newColor
+        })
+        .eq('id', editingCompanyId);
+
+      if (error) {
+        if (error.code === '23505' || error.message.includes('duplicate key')) {
+          if (error.message.includes('companies_code_key')) {
+            throw new Error("Ce code de compagnie est déjà utilisé. Veuillez en choisir un autre.");
+          }
+          throw new Error("Cette compagnie existe déjà.");
+        }
+        throw error;
+      }
+
+      setIsEditModalOpen(false);
+      resetForm();
+      fetchCompanies();
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message || "Une erreur est survenue");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,12 +166,8 @@ export default function AdminCompaniesPage() {
       alert(`Compagnie ajoutée avec succès !\n\nEmail: ${newEmail}\nMot de passe par défaut: ${generatedPassword}\n\nVeuillez transmettre ces identifiants à la compagnie.`);
       
       setIsModalOpen(false);
+      resetForm();
       fetchCompanies(); // Refresh list
-      
-      // Reset form
-      setNewName("");
-      setNewCode("");
-      setNewEmail("");
 
     } catch (error: any) {
       console.error(error);
@@ -124,7 +191,10 @@ export default function AdminCompaniesPage() {
           <p className="text-sm text-gray-500 font-medium mt-1">Gérez les opérateurs de transport inscrits sur TUKKI.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            resetForm();
+            setIsModalOpen(true);
+          }}
           className="bg-slate-900 text-white hover:bg-slate-800 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
@@ -174,7 +244,7 @@ export default function AdminCompaniesPage() {
                   </td>
                 </tr>
               ) : filteredCompanies.map((company) => (
-                <tr key={company.id} className="hover:bg-gray-50/50 transition-colors">
+                <tr key={company.id} className="hover:bg-gray-50/50 transition-colors group">
                   <td className="p-4 pl-6">
                     <div className="flex items-center space-x-3">
                       <div 
@@ -211,9 +281,20 @@ export default function AdminCompaniesPage() {
                     </span>
                   </td>
                   <td className="p-4 pr-6 text-right">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="Plus d'actions">
-                        <MoreVertical className="w-4 h-4" />
+                    <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => openEditModal(company)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                        title="Modifier"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteCompany(company.id, company.name)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -299,6 +380,76 @@ export default function AdminCompaniesPage() {
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>Créer la compagnie</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Modification */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-black text-gray-900">Modifier la Compagnie</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              {errorMsg && (
+                <div className="bg-red-50 text-red-600 text-sm font-semibold p-3 rounded-xl border border-red-100">
+                  {errorMsg}
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Nom de la compagnie</label>
+                <input 
+                  type="text" required 
+                  value={newName} onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Code Compagnie (3-4 lettres)</label>
+                <input 
+                  type="text" required maxLength={5}
+                  value={newCode} onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:bg-white uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Couleur de la marque</label>
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="color" 
+                    value={newColor} onChange={(e) => setNewColor(e.target.value)}
+                    className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                  />
+                  <span className="text-sm text-gray-500 font-medium uppercase">{newColor}</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                >
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Enregistrer</span>
                 </button>
               </div>
             </form>
