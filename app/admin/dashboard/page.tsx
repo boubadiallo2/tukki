@@ -43,7 +43,11 @@ export default function AdminDashboardPage() {
     let query = supabase.from('bookings').select('*, trips(company_id, companies(name))');
     
     // Apply date filters if needed
-    if (filter === "month") {
+    if (filter === "today") {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      query = query.gte('created_at', startOfDay.toISOString());
+    } else if (filter === "month") {
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -207,7 +211,7 @@ export default function AdminDashboardPage() {
             >
               <Filter className="w-4 h-4" />
               <span>
-                {timeFilter === "all" ? "Toutes les dates" : timeFilter === "month" ? "Ce mois-ci" : "Cette semaine"}
+                {timeFilter === "all" ? "Toutes les dates" : timeFilter === "today" ? "Aujourd'hui" : timeFilter === "month" ? "Ce mois-ci" : "Cette semaine"}
               </span>
             </button>
             
@@ -220,16 +224,22 @@ export default function AdminDashboardPage() {
                   Toutes les dates
                 </button>
                 <button 
-                  onClick={() => { setTimeFilter("month"); setIsFilterOpen(false); }}
-                  className={`block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-slate-50 ${timeFilter === "month" ? "text-brand-yellow" : "text-slate-700"}`}
+                  onClick={() => { setTimeFilter("today"); setIsFilterOpen(false); }}
+                  className={`block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-slate-50 ${timeFilter === "today" ? "text-brand-yellow" : "text-slate-700"}`}
                 >
-                  Ce mois-ci
+                  Aujourd'hui
                 </button>
                 <button 
                   onClick={() => { setTimeFilter("week"); setIsFilterOpen(false); }}
                   className={`block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-slate-50 ${timeFilter === "week" ? "text-brand-yellow" : "text-slate-700"}`}
                 >
                   Cette semaine
+                </button>
+                <button 
+                  onClick={() => { setTimeFilter("month"); setIsFilterOpen(false); }}
+                  className={`block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-slate-50 ${timeFilter === "month" ? "text-brand-yellow" : "text-slate-700"}`}
+                >
+                  Ce mois-ci
                 </button>
               </div>
             )}
