@@ -6,6 +6,9 @@ import { supabase } from "@/app/lib/supabaseClient";
 
 export default function BookingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("Tous les statuts");
+  const [filterRoute, setFilterRoute] = useState("Tous les trajets");
+  const [filterDate, setFilterDate] = useState("");
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -116,11 +119,33 @@ export default function BookingsPage() {
     }
   };
 
-  const filteredBookings = bookings.filter(b => 
-    b.booking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.passenger_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.passenger_phone.includes(searchTerm)
-  );
+  // Extract unique routes for the filter dropdown
+  const uniqueRoutes = Array.from(new Set(bookings.map(b => `${b.trips?.departure_city} ➔ ${b.trips?.arrival_city}`))).filter(Boolean);
+
+  const filteredBookings = bookings.filter(b => {
+    const matchesSearch = b.booking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.passenger_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.passenger_phone.includes(searchTerm);
+      
+    let matchesStatus = true;
+    if (filterStatus === "Confirmé") matchesStatus = b.status === 'CONFIRMED' || b.payment_status === 'PAID';
+    else if (filterStatus === "En attente") matchesStatus = b.status !== 'CONFIRMED' && b.status !== 'CANCELLED' && b.payment_status !== 'PAID';
+    else if (filterStatus === "Annulé") matchesStatus = b.status === 'CANCELLED';
+
+    let matchesRoute = true;
+    if (filterRoute !== "Tous les trajets") {
+      const routeStr = `${b.trips?.departure_city} ➔ ${b.trips?.arrival_city}`;
+      matchesRoute = routeStr === filterRoute;
+    }
+
+    let matchesDate = true;
+    if (filterDate) {
+       const bDate = b.travel_date || b.trips?.trip_date;
+       matchesDate = bDate === filterDate;
+    }
+
+    return matchesSearch && matchesStatus && matchesRoute && matchesDate;
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -146,12 +171,33 @@ export default function BookingsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full sm:w-auto opacity-50 pointer-events-none" title="Filtres bientôt disponibles">
-          <select className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 text-gray-500 text-sm font-semibold rounded-xl px-4 py-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <input 
+            type="date"
+            className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2 focus:outline-hidden focus:border-brand-green cursor-pointer"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            title="Filtrer par date de voyage"
+          />
+          <select 
+            className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2 focus:outline-hidden focus:border-brand-green cursor-pointer"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
             <option>Tous les statuts</option>
+            <option>Confirmé</option>
+            <option>En attente</option>
+            <option>Annulé</option>
           </select>
-          <select className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 text-gray-500 text-sm font-semibold rounded-xl px-4 py-2">
+          <select 
+            className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 text-gray-700 text-sm font-semibold rounded-xl px-4 py-2 focus:outline-hidden focus:border-brand-green cursor-pointer"
+            value={filterRoute}
+            onChange={(e) => setFilterRoute(e.target.value)}
+          >
             <option>Tous les trajets</option>
+            {uniqueRoutes.map(route => (
+              <option key={route} value={route}>{route}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -193,8 +239,10 @@ export default function BookingsPage() {
                   <td className="p-4 pl-6">
                     <div>
                       <p className={`font-black text-sm ${isCancelled ? 'text-gray-400 line-through' : 'text-brand-green'}`}>{booking.booking_number}</p>
-                      <p className={`font-bold mt-1 ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.passenger_name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{booking.passenger_phone}</p>
+                      {booking.passenger_name.split(',').map((name: string, idx: number) => (
+                        <p key={idx} className={`font-bold ${idx === 0 ? 'mt-1' : 'mt-0.5'} ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{name.trim()}</p>
+                      ))}
+                      <p className="text-xs text-gray-500 mt-1">{booking.passenger_phone}</p>
                     </div>
                   </td>
                   <td className="p-4">
