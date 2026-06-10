@@ -23,6 +23,7 @@ export default function AdminCompaniesPage() {
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newOwnerName, setNewOwnerName] = useState("");
   const [newOwnerPhone, setNewOwnerPhone] = useState("");
   const [newColor, setNewColor] = useState("#059669");
   const [isCodeManuallyEdited, setIsCodeManuallyEdited] = useState(false);
@@ -61,6 +62,7 @@ export default function AdminCompaniesPage() {
     setNewName("");
     setNewCode("");
     setNewEmail("");
+    setNewOwnerName("");
     setNewOwnerPhone("");
     setNewColor("#059669");
     setIsCodeManuallyEdited(false);
@@ -71,6 +73,7 @@ export default function AdminCompaniesPage() {
     setEditingCompanyId(company.id);
     setNewName(company.name);
     setNewCode(company.code);
+    setNewOwnerName(company.owner_name || "");
     setNewOwnerPhone(company.owner_phone || "");
     setNewColor(company.color || "#059669");
     setIsCodeManuallyEdited(true);
@@ -121,6 +124,7 @@ export default function AdminCompaniesPage() {
           name: newName,
           code: newCode,
           color: newColor,
+          owner_name: newOwnerName,
           owner_phone: newOwnerPhone
         })
         .eq('id', editingCompanyId);
@@ -166,6 +170,7 @@ export default function AdminCompaniesPage() {
           name: newName,
           code: newCode,
           color: newColor,
+          owner_name: newOwnerName,
           owner_phone: newOwnerPhone
         })
         .select()
@@ -428,6 +433,16 @@ export default function AdminCompaniesPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Nom du propriétaire</label>
+                <input 
+                  type="text" required 
+                  value={newOwnerName} onChange={(e) => setNewOwnerName(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
+                  placeholder="Ex: M. Diallo"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-bold text-gray-900 mb-1">Téléphone du propriétaire</label>
                 <input 
                   type="tel" required 
@@ -519,6 +534,15 @@ export default function AdminCompaniesPage() {
                     setIsCodeManuallyEdited(true);
                   }}
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white uppercase font-bold text-brand-green transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-1">Nom du propriétaire</label>
+                <input 
+                  type="text" required 
+                  value={newOwnerName} onChange={(e) => setNewOwnerName(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
                 />
               </div>
 
