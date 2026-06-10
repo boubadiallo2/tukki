@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, MapPin, Calendar, Clock, Edit2, Trash2, Users, MoreVertical, Loader2, X, AlertTriangle, Check } from "lucide-react";
+import { Plus, Search, MapPin, Calendar, Clock, Edit2, Trash2, Users, MoreVertical, Loader2, X, AlertTriangle, Check, RotateCcw } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 const CITIES = [
@@ -28,6 +28,7 @@ export default function TripsPage() {
   const [newFrom, setNewFrom] = useState("Dakar");
   const [newTo, setNewTo] = useState("Thiès");
   const [newDate, setNewDate] = useState("");
+  const [newIsDaily, setNewIsDaily] = useState(false);
   const [newDepTime, setNewDepTime] = useState("");
   const [newArrTime, setNewArrTime] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -47,6 +48,7 @@ export default function TripsPage() {
         .from('trips')
         .select('*, bookings(*)')
         .eq('company_id', profile.company_id)
+        .order('is_daily', { ascending: false })
         .order('trip_date', { ascending: false })
         .order('departure_time', { ascending: true });
       
@@ -70,10 +72,16 @@ export default function TripsPage() {
     return `${hours}h ${mins.toString().padStart(2, '0')}m`;
   };
 
+  const formatTimeFR = (timeString: string) => {
+    if (!timeString) return "";
+    return timeString.substring(0, 5).replace(':', 'h');
+  };
+
   const resetForm = () => {
     setNewFrom("Dakar");
     setNewTo("Thiès");
     setNewDate("");
+    setNewIsDaily(false);
     setNewDepTime("");
     setNewArrTime("");
     setNewPrice("");
@@ -89,8 +97,9 @@ export default function TripsPage() {
     setEditingTripId(trip.id);
     setNewFrom(trip.departure_city);
     setNewTo(trip.arrival_city);
-    setNewDate(trip.trip_date);
-    setNewDepTime(trip.departure_time.substring(0, 5)); // "14:15:00" -> "14:15"
+    setNewDate(trip.trip_date || "");
+    setNewIsDaily(trip.is_daily || false);
+    setNewDepTime(trip.departure_time.substring(0, 5));
     setNewArrTime(trip.arrival_time.substring(0, 5));
     setNewPrice(trip.price.toString());
     setNewTotalSeats(trip.total_seats.toString());
@@ -134,6 +143,10 @@ export default function TripsPage() {
         throw new Error("La ville de départ et d'arrivée ne peuvent pas être identiques.");
       }
 
+      if (!newIsDaily && !newDate) {
+        throw new Error("Veuillez sélectionner une date, ou cocher 'Tous les jours'.");
+      }
+
       const duration = computeDuration(newDepTime, newArrTime);
       const totalSeatsNum = parseInt(newTotalSeats, 10);
 
@@ -141,7 +154,8 @@ export default function TripsPage() {
         company_id: companyId,
         departure_city: newFrom,
         arrival_city: newTo,
-        trip_date: newDate,
+        trip_date: newIsDaily ? null : newDate,
+        is_daily: newIsDaily,
         departure_time: newDepTime,
         arrival_time: newArrTime,
         duration: duration,
@@ -179,11 +193,13 @@ export default function TripsPage() {
         throw new Error("La ville de départ et d'arrivée ne peuvent pas être identiques.");
       }
 
+      if (!newIsDaily && !newDate) {
+        throw new Error("Veuillez sélectionner une date, ou cocher 'Tous les jours'.");
+      }
+
       const duration = computeDuration(newDepTime, newArrTime);
       const totalSeatsNum = parseInt(newTotalSeats, 10);
 
-      // We should ideally calculate difference if total_seats changed, but we keep it simple here
-      // and let available_seats be managed properly in a real app (e.g. total_seats - booked_count)
       const currentTrip = trips.find(t => t.id === editingTripId);
       const bookedCount = currentTrip?.bookings?.filter((b:any) => b.status === 'CONFIRMED').length || 0;
       const newAvailable = totalSeatsNum - bookedCount;
@@ -191,7 +207,8 @@ export default function TripsPage() {
       const { error } = await supabase.from('trips').update({
         departure_city: newFrom,
         arrival_city: newTo,
-        trip_date: newDate,
+        trip_date: newIsDaily ? null : newDate,
+        is_daily: newIsDaily,
         departure_time: newDepTime,
         arrival_time: newArrTime,
         duration: duration,
@@ -249,13 +266,27 @@ export default function TripsPage() {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-bold text-gray-900 mb-1">Date du départ</label>
-        <input 
-          type="date" required 
-          value={newDate} onChange={(e) => setNewDate(e.target.value)}
-          className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
-        />
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={newIsDaily}
+            onChange={(e) => setNewIsDaily(e.target.checked)}
+            className="w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
+          />
+          <span className="text-sm font-bold text-gray-900">Ce trajet a lieu tous les jours</span>
+        </label>
+        
+        {!newIsDaily && (
+          <div className="animate-in fade-in slide-in-from-top-1">
+            <label className="block text-sm font-bold text-gray-900 mb-1">Date précise du départ</label>
+            <input 
+              type="date" required={!newIsDaily}
+              value={newDate} onChange={(e) => setNewDate(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -393,9 +424,18 @@ export default function TripsPage() {
                       <div>
                         <p className="font-black text-gray-900 text-sm">{trip.departure_city} ➔ {trip.arrival_city}</p>
                         <div className="flex items-center space-x-2 text-xs font-semibold text-gray-500 mt-1">
-                          <span className="flex items-center"><Calendar className="w-3 h-3 mr-1 text-gray-400" /> {trip.trip_date}</span>
+                          {trip.is_daily ? (
+                            <span className="flex items-center px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">
+                              <RotateCcw className="w-3 h-3 mr-1" /> Tous les jours
+                            </span>
+                          ) : (
+                            <span className="flex items-center"><Calendar className="w-3 h-3 mr-1 text-gray-400" /> {trip.trip_date}</span>
+                          )}
                           <span>•</span>
-                          <span className="flex items-center"><Clock className="w-3 h-3 mr-1 text-gray-400" /> {trip.departure_time.substring(0, 5)} - {trip.arrival_time.substring(0, 5)}</span>
+                          <span className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1 text-gray-400" /> 
+                            {formatTimeFR(trip.departure_time)} - {formatTimeFR(trip.arrival_time)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -445,8 +485,6 @@ export default function TripsPage() {
           </table>
         </div>
       </div>
-
-
 
       {/* Modal d'ajout de trajet */}
       {isModalOpen && (

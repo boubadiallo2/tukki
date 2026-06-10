@@ -13,7 +13,6 @@ import {
 import { supabase } from "@/app/lib/supabaseClient";
 import Link from "next/link";
 
-// Defining TicketIcon since it's used in STATS
 function TicketIcon(props: any) {
   return (
     <svg
@@ -49,6 +48,11 @@ export default function DashboardPage() {
   
   const [departures, setDepartures] = useState<any[]>([]);
 
+  const formatTimeFR = (timeString: string) => {
+    if (!timeString) return "";
+    return timeString.substring(0, 5).replace(':', 'h');
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
@@ -63,7 +67,6 @@ export default function DashboardPage() {
         .single();
         
       if (profile?.company_id) {
-        // Fetch company name
         const { data: company } = await supabase
           .from('companies')
           .select('name')
@@ -72,8 +75,6 @@ export default function DashboardPage() {
           
         if (company) setCompanyInfo(company);
 
-        // Fetch real trips and bookings
-        // We'll try to fetch trips with bookings if they exist
         const { data: trips, error } = await supabase
           .from('trips')
           .select('*, bookings(*)')
@@ -87,7 +88,6 @@ export default function DashboardPage() {
            trips.forEach(trip => {
              if (trip.bookings) {
                trip.bookings.forEach((b: any) => {
-                 // Assuming we count paid/confirmed bookings
                  if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
                    totalRevenue += b.total_price || trip.price || 0;
                    totalTickets += 1;
@@ -101,13 +101,19 @@ export default function DashboardPage() {
              revenue: totalRevenue,
              tickets: totalTickets,
              passengers: uniqueUsers.size,
-             occupancyRate: 0 // Would be calculated with seats_available + booked
+             occupancyRate: 0
            });
 
-           // Get upcoming trips
+           // Upcoming departures (for daily trips, we can just show them or only today's departures)
+           // For simplicity, we just sort them by time if daily, or date if not.
            const upcoming = trips
-             .filter(t => new Date(t.departure_time) >= new Date())
-             .sort((a,b) => new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime())
+             .filter(t => t.is_daily || new Date(t.trip_date) >= new Date(new Date().setHours(0,0,0,0)))
+             .sort((a,b) => {
+               if (a.is_daily && b.is_daily) return a.departure_time.localeCompare(b.departure_time);
+               if (a.is_daily) return -1;
+               if (b.is_daily) return 1;
+               return new Date(a.trip_date).getTime() - new Date(b.trip_date).getTime() || a.departure_time.localeCompare(b.departure_time);
+             })
              .slice(0, 5);
              
            setDepartures(upcoming);
@@ -184,7 +190,6 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {STATS_UI.map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300">
@@ -207,10 +212,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Ventes / Graphique */}
         <div className="lg:col-span-2 bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-lg font-black text-gray-900">Ventes de la semaine</h2>
@@ -241,7 +243,6 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="h-64 flex items-end justify-between gap-2">
-              {/* Le faux graphique a été masqué car il n'y a pas de vraies données par jour encore */}
               <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400 border border-dashed border-gray-200 rounded-xl">
                 Graphique en construction (données réelles)
               </div>
@@ -249,7 +250,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Prochains Départs */}
         <div className="bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-black text-gray-900">Prochains départs</h2>
@@ -273,17 +273,16 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-black text-gray-900">
-                        {new Date(departure.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {formatTimeFR(departure.departure_time)}
                       </p>
                       <p className="text-xs font-bold text-gray-600 mt-0.5">
-                        {/* Fallback en attendant d'avoir les vrais noms de gares */}
-                        Trajet #{departure.id.substring(0, 5)}
+                        {departure.departure_city} ➔ {departure.arrival_city}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                      Prévu
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase">
+                      {departure.is_daily ? 'Quotidien' : 'Prévu'}
                     </span>
                     <p className="text-xs font-bold text-gray-500 mt-1">
                       {departure.bookings?.length || 0} résa.
@@ -294,7 +293,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
