@@ -147,6 +147,32 @@ export default function BookingsPage() {
     return matchesSearch && matchesStatus && matchesRoute && matchesDate;
   });
 
+  const expandedBookings = filteredBookings.flatMap(booking => {
+    const names = booking.passenger_name.split(',').map((n: string) => n.trim()).filter(Boolean);
+    const seats = booking.selected_seats || [];
+    
+    if (names.length <= 1) {
+      return [{
+        ...booking,
+        virtual_id: booking.id,
+        virtual_name: booking.passenger_name,
+        virtual_seat: seats,
+        virtual_price: booking.total_price,
+        is_group: false
+      }];
+    }
+
+    return names.map((name: string, idx: number) => ({
+      ...booking,
+      virtual_id: `${booking.id}-${idx}`,
+      virtual_name: name,
+      virtual_seat: seats[idx] ? [seats[idx]] : seats, // Assign corresponding seat
+      virtual_price: booking.total_price / names.length, // Divide price equally
+      is_group: true,
+      group_size: names.length
+    }));
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -223,26 +249,24 @@ export default function BookingsPage() {
                     <p className="font-bold">Chargement des réservations...</p>
                   </td>
                 </tr>
-              ) : filteredBookings.length === 0 ? (
+              ) : expandedBookings.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-gray-500">
                     <p className="text-sm font-bold text-gray-400">Aucune réservation trouvée.</p>
                   </td>
                 </tr>
-              ) : filteredBookings.map((booking) => {
+              ) : expandedBookings.map((booking) => {
                 const dateOfTravel = booking.travel_date || booking.trips?.trip_date;
                 const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Tous les jours";
                 const isCancelled = booking.status === 'CANCELLED';
 
                 return (
-                <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
+                <tr key={booking.virtual_id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-4 pl-6">
                     <div>
                       <p className={`font-black text-sm ${isCancelled ? 'text-gray-400 line-through' : 'text-brand-green'}`}>{booking.booking_number}</p>
-                      {booking.passenger_name.split(',').map((name: string, idx: number) => (
-                        <p key={idx} className={`font-bold ${idx === 0 ? 'mt-1' : 'mt-0.5'} ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{name.trim()}</p>
-                      ))}
-                      <p className="text-xs text-gray-500 mt-1">{booking.passenger_phone}</p>
+                      <p className={`font-bold mt-1 ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.virtual_name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{booking.passenger_phone}</p>
                     </div>
                   </td>
                   <td className="p-4">
@@ -259,11 +283,11 @@ export default function BookingsPage() {
                   </td>
                   <td className="p-4">
                     <span className={`px-2.5 py-1 rounded-md text-xs font-bold tracking-widest border whitespace-nowrap ${isCancelled ? 'bg-gray-50 text-gray-400 border-gray-200' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                      {booking.selected_seats?.join(", ") || "N/A"}
+                      {booking.virtual_seat?.join(", ") || "N/A"}
                     </span>
                   </td>
                   <td className="p-4">
-                    <p className={`text-sm font-black ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.total_price?.toLocaleString()} FCFA</p>
+                    <p className={`text-sm font-black ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{booking.virtual_price?.toLocaleString()} FCFA</p>
                     <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Payé par {booking.payment_method || 'Espèces'}</p>
                   </td>
                   <td className="p-4">
@@ -285,7 +309,7 @@ export default function BookingsPage() {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => setOpenMenuId(openMenuId === booking.id ? null : booking.id)}
+                        onClick={() => setOpenMenuId(openMenuId === booking.virtual_id ? null : booking.virtual_id)}
                         className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer" 
                         title="Plus d'actions"
                       >
@@ -294,7 +318,7 @@ export default function BookingsPage() {
                     </div>
 
                     {/* Dropdown Menu */}
-                    {openMenuId === booking.id && (
+                    {openMenuId === booking.virtual_id && (
                       <div className="absolute right-6 top-12 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                         <button
                           onClick={() => {
@@ -341,7 +365,13 @@ export default function BookingsPage() {
               </div>
               <h3 className="text-xl font-black text-gray-900 mb-2">Annuler la réservation ?</h3>
               <p className="text-sm text-gray-500 font-medium">
-                Voulez-vous vraiment annuler la réservation <strong className="text-gray-900">{selectedBooking.booking_number}</strong> de <strong className="text-gray-900">{selectedBooking.passenger_name}</strong> ?
+                Voulez-vous vraiment annuler la réservation <strong className="text-gray-900">{selectedBooking.booking_number}</strong> de <strong className="text-gray-900">{selectedBooking.virtual_name}</strong> ?
+                {selectedBooking.is_group && (
+                  <span className="block mt-3 text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-left">
+                    <AlertTriangle className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                    <strong>Attention :</strong> Ceci est une réservation de groupe. L'annulation supprimera les <strong>{selectedBooking.group_size} places</strong> associées à ce billet.
+                  </span>
+                )}
                 <br /><br />
                 Les sièges redeviendront disponibles à la vente.
               </p>
