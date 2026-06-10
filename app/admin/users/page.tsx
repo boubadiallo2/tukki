@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
     const rows = filteredProfiles.map(p => [
       `"${p.full_name || 'Sans nom'}"`,
       p.email,
-      p.role === 'super_admin' ? 'Super Admin' : p.role === 'company_admin' ? 'Partenaire' : 'Client',
+      p.role === 'super_admin' ? 'Super Admin' : p.role === 'company' ? 'Partenaire' : 'Client',
       `"${p.companies?.name || '-'}"`,
       new Date(p.created_at).toLocaleDateString('fr-FR')
     ]);
@@ -92,7 +92,7 @@ export default function AdminUsersPage() {
             <ShieldCheck className="w-3 h-3 mr-1" /> Super Admin
           </span>
         );
-      case 'company_admin':
+      case 'company':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/30">
             <Building2 className="w-3 h-3 mr-1" /> Partenaire
@@ -134,7 +134,7 @@ export default function AdminUsersPage() {
           {[
             { id: "ALL", label: "Tous" },
             { id: "client", label: "Clients" },
-            { id: "company_admin", label: "Partenaires" },
+            { id: "company", label: "Partenaires" },
             { id: "super_admin", label: "Super Admins" }
           ].map(role => (
             <button
