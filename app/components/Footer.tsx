@@ -2,8 +2,38 @@
 
 import Link from "next/link";
 import { Compass, Mail, Phone, MapPin, Globe, CreditCard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabaseClient";
 
 export default function Footer() {
+  const [settings, setSettings] = useState({
+    supportEmail: "support@tukki.sn",
+    supportPhone: "+221 33 824 00 00",
+    supportAddress: "Avenue Cheikh Anta Diop, Dakar"
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from('platform_settings')
+          .select('support_email, support_phone, support_address')
+          .eq('id', 1)
+          .single();
+        
+        if (data) {
+          setSettings({
+            supportEmail: data.support_email || "support@tukki.sn",
+            supportPhone: data.support_phone || "+221 33 824 00 00",
+            supportAddress: data.support_address || "Avenue Cheikh Anta Diop, Dakar"
+          });
+        }
+      } catch (err) {
+        console.error("Erreur chargement footer:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
   return (
     <footer className="bg-gray-900 text-gray-300 border-t border-gray-800">
       {/* Top Newsletter & Promo Banner */}
@@ -97,15 +127,15 @@ export default function Footer() {
             <h4 className="text-sm font-semibold uppercase text-white tracking-wider mb-4">Contact & Assistance</h4>
             <div className="flex items-center space-x-3 text-sm">
               <Phone className="w-4 h-4 text-brand-yellow shrink-0" />
-              <span>+221 33 824 00 00</span>
+              <span>{settings.supportPhone}</span>
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <Mail className="w-4 h-4 text-brand-yellow shrink-0" />
-              <span>support@tukki.sn</span>
+              <span>{settings.supportEmail}</span>
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <MapPin className="w-4 h-4 text-brand-yellow shrink-0" />
-              <span>Avenue Cheikh Anta Diop, Dakar</span>
+              <span>{settings.supportAddress}</span>
             </div>
           </div>
         </div>

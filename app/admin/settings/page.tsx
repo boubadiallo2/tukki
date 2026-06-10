@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabaseClient";
 import { 
   Settings2, 
   CreditCard, 
@@ -21,26 +22,70 @@ export default function AdminSettingsPage() {
     commissionRate: 5,
     fixedFee: 200,
     supportEmail: "support@tukki.sn",
-    supportPhone: "+221 77 000 00 00",
+    supportPhone: "+221 33 824 00 00",
+    supportAddress: "Avenue Cheikh Anta Diop, Dakar",
     maintenanceMode: false,
     paydunyaApiKey: "tk_live_*********************",
     waveApiKey: "wv_live_*********************"
   });
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          commissionRate: data.commission_rate,
+          fixedFee: data.fixed_fee,
+          supportEmail: data.support_email,
+          supportPhone: data.support_phone,
+          supportAddress: data.support_address,
+          maintenanceMode: data.maintenance_mode
+        }));
+      }
+    } catch (err) {
+      console.error("Erreur lors du chargement des paramètres:", err);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setSuccessMsg("");
 
-    // Simulation de sauvegarde
-    setTimeout(() => {
-      setSaving(false);
-      setSuccessMsg("Paramètres de la plateforme mis à jour avec succès.");
+    try {
+      const { error } = await supabase
+        .from('platform_settings')
+        .update({
+          commission_rate: formData.commissionRate,
+          fixed_fee: formData.fixedFee,
+          support_email: formData.supportEmail,
+          support_phone: formData.supportPhone,
+          support_address: formData.supportAddress,
+          maintenance_mode: formData.maintenanceMode,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (error) throw error;
       
-      setTimeout(() => {
-        setSuccessMsg("");
-      }, 5000);
-    }, 1000);
+      setSuccessMsg("Paramètres de la plateforme mis à jour avec succès.");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde:", err);
+      alert("Une erreur est survenue lors de la sauvegarde.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -119,11 +164,21 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-900 mb-1">Téléphone d'urgence (Partenaires)</label>
+                <label className="block text-sm font-bold text-slate-900 mb-1">Téléphone de contact</label>
                 <input 
                   type="tel" required 
                   value={formData.supportPhone}
                   onChange={(e) => setFormData({...formData, supportPhone: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:bg-white transition-all font-medium"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-bold text-slate-900 mb-1">Adresse physique</label>
+                <input 
+                  type="text" required 
+                  value={formData.supportAddress}
+                  onChange={(e) => setFormData({...formData, supportAddress: e.target.value})}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:bg-white transition-all font-medium"
                 />
               </div>
