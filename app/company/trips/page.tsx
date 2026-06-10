@@ -411,7 +411,8 @@ export default function TripsPage() {
                   </td>
                 </tr>
               ) : filteredTrips.map((trip) => {
-                const bookedCount = trip.bookings?.filter((b:any) => b.status === 'CONFIRMED' || b.payment_status === 'PAID').length || 0;
+                const bookedCount = trip.bookings?.filter((b:any) => b.status === 'CONFIRMED' || b.payment_status === 'PAID')
+                  .reduce((sum: number, b: any) => sum + (b.selected_seats?.length || 1), 0) || 0;
                 const isFull = bookedCount >= trip.total_seats;
                 
                 return (

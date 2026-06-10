@@ -90,8 +90,8 @@ export default function DashboardPage() {
                trip.bookings.forEach((b: any) => {
                  if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
                    totalRevenue += b.total_price || trip.price || 0;
-                   totalTickets += 1;
-                   if (b.user_id) uniqueUsers.add(b.user_id);
+                   totalTickets += b.selected_seats?.length || 1;
+                   if (b.passenger_email || b.passenger_phone) uniqueUsers.add(b.passenger_email || b.passenger_phone);
                  }
                });
              }
