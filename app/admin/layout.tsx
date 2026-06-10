@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/app/lib/supabaseClient";
 import {
   LayoutDashboard,
   Building2,
@@ -23,7 +24,26 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      } else {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   const navigation = [
     { name: "Vue Globale", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -33,6 +53,12 @@ export default function AdminLayout({
     { name: "Utilisateurs", href: "/admin/users", icon: Users },
     { name: "Paramètres Plateforme", href: "/admin/settings", icon: Settings },
   ];
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-green"></div>
+    </div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -80,7 +106,10 @@ export default function AdminLayout({
             </nav>
 
             <div className="p-4 border-t border-slate-800 shrink-0">
-              <button className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors">
+              <button 
+                onClick={handleLogout}
+                className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
+              >
                 <LogOut className="w-5 h-5" />
                 <span>Déconnexion</span>
               </button>
@@ -120,7 +149,10 @@ export default function AdminLayout({
         </nav>
 
         <div className="p-4 border-t border-slate-800 shrink-0">
-          <button className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
+          >
             <LogOut className="w-5 h-5" />
             <span>Déconnexion</span>
           </button>
