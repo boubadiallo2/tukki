@@ -96,14 +96,8 @@ export default async function Home() {
         {/* Hero Section */}
         <section className="relative bg-[#0d5c31] text-white pt-10 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
           <div className="max-w-7xl mx-auto text-center relative z-10 space-y-5">
-            {/* Top Badge */}
-            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 text-[13px] font-medium text-white shadow-sm">
-              <span className="text-brand-yellow text-base">✨</span>
-              <span>Économisez 20% sur <span className="bg-white/20 px-1 rounded">votre premier voyage</span> avec le code FIRST20</span>
-            </div>
-            
             {/* Headlines */}
-            <h1 className="text-3xl sm:text-4xl lg:text-[54px] font-black tracking-tight leading-[1.1] max-w-5xl mx-auto drop-shadow-sm">
+            <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-black tracking-tight leading-[1.1] max-w-5xl mx-auto drop-shadow-sm">
               Réservez votre ticket de voyage partout au Sénégal,<br />
               <span className="text-brand-yellow drop-shadow-md">en quelques clics.</span>
             </h1>
