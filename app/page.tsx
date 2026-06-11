@@ -104,8 +104,8 @@ export default async function Home() {
             
             {/* Headlines */}
             <h1 className="text-3xl sm:text-4xl lg:text-[54px] font-black tracking-tight leading-[1.1] max-w-5xl mx-auto drop-shadow-sm">
-              Réservez Vos Tickets de Bus<br />
-              <span className="text-brand-yellow drop-shadow-md">Simplement, Rapidement, Sécurisé.</span>
+              Réservez votre ticket de voyage partout au Sénégal,<br />
+              <span className="text-brand-yellow drop-shadow-md">en quelques clics.</span>
             </h1>
             
             {/* Subheadline with Ticket icon */}
