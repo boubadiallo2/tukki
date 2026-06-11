@@ -1,11 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Compass, Menu, X, User, ShieldCheck, HelpCircle } from "lucide-react";
+import { supabase } from "../lib/supabaseClient";
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [supportPhone, setSupportPhone] = useState("");
+
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const { data } = await supabase.from('platform_settings').select('support_phone').single();
+        if (data && data.support_phone) {
+          setSupportPhone(data.support_phone);
+        }
+      } catch (err) {
+        console.error("Failed to load settings in header", err);
+      }
+    }
+    fetchSettings();
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-xs">
@@ -42,10 +58,10 @@ export default function Header() {
               <ShieldCheck className="w-3.5 h-3.5 text-brand-green" />
               <span>Garantie Voyage Sécurisé</span>
             </div>
-            <button className="flex items-center space-x-1 text-gray-700 hover:text-brand-green font-medium text-sm transition">
+            <a href={`tel:${supportPhone || '+221338000000'}`} className="flex items-center space-x-1 text-gray-700 hover:text-brand-green font-medium text-sm transition">
               <HelpCircle className="w-4 h-4" />
               <span>Aide</span>
-            </button>
+            </a>
             <Link href="/login" className="flex items-center space-x-2 bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition duration-200">
               <User className="w-4 h-4" />
               <span>Se connecter</span>
