@@ -84,10 +84,10 @@ export default function Home() {
                 <span>Paiement 100% sécurisé</span>
               </div>
               <span className="text-emerald-700/50 hidden sm:block">|</span>
-              <div className="flex items-center space-x-1.5 bg-[#0a4d2e] border border-emerald-500/40 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.25)] text-white">
-                <CheckCircle2 className="w-4 h-4 text-brand-yellow" />
-                <span>Confirmation immédiate</span>
-              </div>
+              <Link href="/partenaire" className="flex items-center space-x-1.5 bg-brand-yellow hover:bg-yellow-500 border border-yellow-400 px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.4)] text-slate-900 transition-colors cursor-pointer z-30">
+                <span className="font-bold">Devenir Partenaire</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
               <span className="text-emerald-700/50 hidden sm:block">|</span>
               <div className="flex items-center space-x-1.5">
                 <span className="text-base">🎧</span>
