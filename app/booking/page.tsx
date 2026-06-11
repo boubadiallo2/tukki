@@ -181,15 +181,37 @@ function BookingPageContent() {
     }
   };
 
+  const [paymentMessage, setPaymentMessage] = useState("");
+
   const handlePayment = (method: "wave" | "orange_money") => {
     setPaymentMethod(method);
     setIsProcessingPayment(true);
     setIsSubmitting(true);
     
-    // Simulate payment processing delay (2.5s)
+    let isMobile = false;
+    if (typeof window !== 'undefined') {
+      isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    if (method === 'wave') {
+      if (isMobile) {
+        setPaymentMessage("Ouverture automatique de l'application Wave pour valider le paiement...");
+        // Tentative de deep link vers l'application
+        if (typeof window !== 'undefined') {
+          // Utilisation d'un setTimeout pour ne pas bloquer le thread principal lors du deep link
+          setTimeout(() => { window.location.href = "wave://"; }, 500);
+        }
+      } else {
+        setPaymentMessage(`Un SMS contenant le lien de paiement a été envoyé au ${phone || 'votre numéro'}. Veuillez cliquer sur le lien depuis votre téléphone pour valider.`);
+      }
+    } else {
+      setPaymentMessage(`Veuillez composer le #144# ou utiliser votre application Orange Money pour valider le paiement.`);
+    }
+    
+    // Simulate payment processing delay (4.5s)
     setTimeout(() => {
       submitBooking();
-    }, 2500);
+    }, 4500);
   };
 
   // Generate seat map arrays (9 rows, 4 columns)
@@ -627,7 +649,7 @@ function BookingPageContent() {
                 <div>
                   <h3 className="text-xl font-black text-gray-900">En attente de validation...</h3>
                   <p className="text-sm text-gray-500 font-medium mt-2 max-w-[250px] mx-auto">
-                    Veuillez valider le paiement sur votre application {paymentMethod === 'wave' ? 'Wave' : 'Orange Money'}.
+                    {paymentMessage}
                   </p>
                 </div>
               </div>
