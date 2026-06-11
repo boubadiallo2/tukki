@@ -96,19 +96,17 @@ export default async function Home() {
         {/* Hero Section */}
         <section className="relative bg-[#0d5c31] text-white pt-10 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
           <div className="max-w-7xl mx-auto text-center relative z-10 space-y-5">
+            {/* Top Badge */}
+            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 text-[13px] font-medium text-white shadow-sm">
+              <span className="text-brand-yellow"><Ticket className="w-4 h-4" /></span>
+              <span>TUKKI, votre plateforme fiable pour réserver <span className="bg-white/20 px-1 rounded">vos tickets</span> de bus partout au Sénégal, 24h/24 et 7j/7.</span>
+            </div>
+
             {/* Headlines */}
             <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-black tracking-tight leading-[1.1] max-w-5xl mx-auto drop-shadow-sm">
               Réservez votre ticket de voyage partout au Sénégal,<br />
               <span className="text-brand-yellow drop-shadow-md">en quelques clics.</span>
             </h1>
-            
-            {/* Subheadline with Ticket icon */}
-            <div className="flex items-center justify-center space-x-2.5 text-[13px] sm:text-sm text-emerald-50 max-w-2xl mx-auto font-medium">
-               <div className="border-[1.5px] border-brand-yellow text-brand-yellow p-1 rounded-md shadow-xs">
-                 <Ticket className="w-5 h-5" />
-               </div>
-               <p>TUKKI, votre plateforme fiable pour réserver <span className="underline decoration-brand-yellow decoration-2 underline-offset-4">vos tickets</span> de bus<br className="hidden sm:block"/> partout au Sénégal, 24h/24 et 7j/7.</p>
-            </div>
 
             {/* Features Row */}
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-[13px] font-semibold text-emerald-100 pt-3 pb-6">
