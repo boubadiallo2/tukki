@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import SearchForm from "../components/SearchForm";
 import { supabase } from "../lib/supabaseClient";
-import { Trip, OPERATORS } from "../lib/mockData";
+import { Trip } from "../lib/mockData";
 import {
   Filter,
   ArrowUpDown,
@@ -78,8 +78,9 @@ function SearchPageContent() {
                 availableSeats: availableSeats < 0 ? 0 : availableSeats,
                 totalSeats: t.total_seats,
                 occupiedSeats: [], // Not used here
-                rating: parseFloat(t.companies.rating),
-                amenities: t.companies.amenities || []
+                rating: parseFloat(t.companies.rating) || 5.0,
+                amenities: t.companies.amenities || [],
+                companyColor: t.companies.color || '#059669'
               };
             });
             
@@ -155,6 +156,11 @@ function SearchPageContent() {
   };
 
   const filteredTrips = getFilteredAndSortedTrips();
+
+  const availableOperators = Array.from(new Map(trips.map(t => [
+    t.companyCode,
+    { code: t.companyCode, name: t.companyName, rating: t.rating }
+  ])).values());
 
   const handleReserve = (tripId: string) => {
     router.push(`/booking?tripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
@@ -232,7 +238,7 @@ function SearchPageContent() {
           <span>Opérateurs</span>
         </h3>
         <div className="space-y-3">
-          {OPERATORS.map((op) => (
+          {availableOperators.map((op) => (
             <label key={op.code} className="flex items-center space-x-3 text-xs font-medium text-gray-700 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -348,19 +354,25 @@ function SearchPageContent() {
               ) : (
                 <div className="space-y-4">
                   {filteredTrips.map((trip) => {
-                    const operatorStyle = OPERATORS.find(op => op.code === trip.companyCode);
                     const urgency = trip.availableSeats <= 5;
                     
                     return (
-                      <div
-                        key={trip.id}
-                        className="bg-white border border-gray-100 hover:border-brand-green/30 rounded-2xl p-5 shadow-xs hover:shadow-md transition duration-200 flex flex-col md:flex-row items-stretch justify-between gap-6"
-                      >
+                      <div key={trip.id} className="relative group">
+                        <div
+                          className="bg-white border border-gray-100 group-hover:border-brand-green/30 rounded-2xl md:rounded-b-none p-5 shadow-xs transition duration-200 flex flex-col md:flex-row items-stretch justify-between gap-6 relative z-10"
+                        >
                         {/* Operator & Journey Timeline */}
                         <div className="flex-grow flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                           {/* Left: Operator Details */}
                           <div className="space-y-2 md:w-40 shrink-0">
-                            <span className={`inline-block px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${operatorStyle?.color}`}>
+                            <span 
+                              className="inline-block px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border"
+                              style={{ 
+                                color: (trip as any).companyColor, 
+                                borderColor: `${(trip as any).companyColor}40`, 
+                                backgroundColor: `${(trip as any).companyColor}10` 
+                              }}
+                            >
                               {trip.companyName}
                             </span>
                             <div className="flex items-center space-x-1.5">
@@ -427,9 +439,34 @@ function SearchPageContent() {
                             <ChevronRight className="w-4 h-4 transition group-hover:translate-x-1" />
                           </button>
                         </div>
+
+                        {/* Amenities Row (Full Width on mobile, placed below everything) */}
+                        {trip.amenities && trip.amenities.length > 0 && (
+                          <div className="w-full md:hidden mt-2 pt-3 border-t border-gray-50 flex flex-wrap gap-1.5">
+                            {trip.amenities.map(amenity => (
+                              <span key={amenity} className="text-[9px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+                                {amenity}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
                       </div>
-                    );
-                  })}
+                      
+                      {/* Amenities Row (Desktop: Absolute or appended at bottom) */}
+                      {trip.amenities && trip.amenities.length > 0 && (
+                        <div className="hidden md:flex bg-gray-50/50 rounded-b-2xl border-x border-b border-gray-100 -mt-2 px-5 py-2.5 items-center gap-2">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Commodités :</span>
+                          {trip.amenities.map(amenity => (
+                            <span key={amenity} className="text-[10px] font-bold text-gray-600 bg-white border border-gray-200 px-2 py-0.5 rounded-md shadow-xs">
+                              {amenity}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 </div>
               )}
             </section>
