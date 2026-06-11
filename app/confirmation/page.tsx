@@ -41,6 +41,13 @@ function ConfirmationPageContent() {
   const operator = searchParams.get("operator") || "Tukki Express";
   const totalPrice = searchParams.get("price") || "6000";
 
+  const returnTripId = searchParams.get("returnTripId") || "";
+  const returnDate = searchParams.get("returnDate") || "";
+  const returnSeatsStr = searchParams.get("returnSeats") || "";
+  const returnDepartureTime = searchParams.get("returnDepartureTime") || "";
+  const returnArrivalTime = searchParams.get("returnArrivalTime") || "";
+  const returnOperator = searchParams.get("returnOperator") || "";
+
   const [copied, setCopied] = useState(false);
 
   // Copy booking code
@@ -51,12 +58,48 @@ function ConfirmationPageContent() {
   };
 
   const namesList = namesStr.split(",").map(n => n.trim());
-  const seatsList = seatsStr.split(",").map(s => s.trim());
-  const passengers = namesList.map((name, idx) => ({
-    name,
-    seat: seatsList[idx] || seatsList[0] || "",
-    id: `${bookingNumber}-${idx + 1}`
-  }));
+  const outboundSeatsList = seatsStr.split(",").map(s => s.trim());
+  const returnSeatsList = returnSeatsStr.split(",").map(s => s.trim());
+
+  const tickets: Array<{
+    id: string;
+    name: string;
+    seat: string;
+    from: string;
+    to: string;
+    date: string;
+    departureTime: string;
+    operator: string;
+    type: "Aller" | "Retour";
+  }> = [];
+
+  namesList.forEach((name, idx) => {
+    tickets.push({
+      id: `${bookingNumber}-A${idx + 1}`,
+      name,
+      seat: outboundSeatsList[idx] || outboundSeatsList[0] || "",
+      from,
+      to,
+      date,
+      departureTime,
+      operator,
+      type: "Aller"
+    });
+
+    if (returnTripId) {
+      tickets.push({
+        id: `${bookingNumber}-R${idx + 1}`,
+        name,
+        seat: returnSeatsList[idx] || returnSeatsList[0] || "",
+        from: to,
+        to: from,
+        date: returnDate,
+        departureTime: returnDepartureTime,
+        operator: returnOperator,
+        type: "Retour"
+      });
+    }
+  });
 
   const downloadPDF = async (passengerId: string, pName: string) => {
     const element = document.getElementById(`ticket-${passengerId}`);
@@ -204,10 +247,10 @@ function ConfirmationPageContent() {
 
         {/* Printable Boarding Ticket Cards */}
         <div className="flex flex-col gap-16 max-w-2xl mx-auto mb-10">
-          {passengers.map((passenger) => (
-            <div key={passenger.id} className="text-center w-full">
+          {tickets.map((ticket) => (
+            <div key={ticket.id} className="text-center w-full">
               <div
-                id={`ticket-${passenger.id}`}
+                id={`ticket-${ticket.id}`}
                 className="bg-white border border-gray-100 rounded-[2rem] p-6 md:p-8 w-full max-w-md mx-auto shadow-sm text-left relative"
               >
                 {/* Logo */}
@@ -217,9 +260,9 @@ function ConfirmationPageContent() {
                   </div>
                   <div className="leading-tight">
                     <span className="text-xl font-black tracking-wider text-gray-900 block uppercase">
-                      {operator}
+                      {ticket.operator}
                     </span>
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Transport</span>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Transport - {ticket.type}</span>
                   </div>
                 </div>
 
@@ -229,11 +272,11 @@ function ConfirmationPageContent() {
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
                     <p className="text-[13px] font-bold text-gray-900 mb-1">Ville de départ:</p>
-                    <p className="text-[13px] text-gray-600">{from}</p>
+                    <p className="text-[13px] text-gray-600">{ticket.from}</p>
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-gray-900 mb-1">Ville de destination:</p>
-                    <p className="text-[13px] text-gray-600">{to}</p>
+                    <p className="text-[13px] text-gray-600">{ticket.to}</p>
                   </div>
                 </div>
 
@@ -241,11 +284,11 @@ function ConfirmationPageContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[13px] font-bold text-gray-900 mb-1">Date du voyage:</p>
-                    <p className="text-[13px] text-gray-600">{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>
+                    <p className="text-[13px] text-gray-600">{new Date(ticket.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-gray-900 mb-1">Heure de départ:</p>
-                    <p className="text-[13px] text-gray-600">{departureTime}</p>
+                    <p className="text-[13px] text-gray-600">{ticket.departureTime}</p>
                   </div>
                 </div>
 
@@ -254,18 +297,18 @@ function ConfirmationPageContent() {
                 {/* Client */}
                 <div className="mb-5">
                   <p className="text-[13px] font-bold text-gray-900 mb-1">Client:</p>
-                  <p className="text-[13px] text-gray-600">{passenger.name}</p>
+                  <p className="text-[13px] text-gray-600">{ticket.name}</p>
                 </div>
 
                 {/* Ticket / Price */}
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   <div>
                     <p className="text-[13px] font-bold text-gray-900 mb-1">Ticket:</p>
-                    <p className="text-[13px] text-gray-600">{passenger.id.replace('SEN-', '')}{Math.floor(Math.random() * 100000000)}</p>
+                    <p className="text-[13px] text-gray-600">{ticket.id.replace('SEN-', '')}{Math.floor(Math.random() * 100000)}</p>
                   </div>
                   <div>
-                    <p className="text-[13px] font-bold text-gray-900 mb-1">Prix total:</p>
-                    <p className="text-[13px] text-gray-600">{formatPrice(Math.round(parseInt(totalPrice) / passengers.length).toString())}</p>
+                    <p className="text-[13px] font-bold text-gray-900 mb-1">Prix payé (Moyenne):</p>
+                    <p className="text-[13px] text-gray-600">{formatPrice(Math.round(parseInt(totalPrice) / tickets.length).toString())}</p>
                   </div>
                 </div>
 
@@ -273,7 +316,7 @@ function ConfirmationPageContent() {
                 <div className="mb-6">
                   <p className="text-[13px] font-bold text-gray-900 mb-2">Siège:</p>
                   <div className="inline-flex items-center justify-center w-10 h-10 border border-gray-100 rounded-xl shadow-xs">
-                    <span className="text-sm font-medium text-gray-800">{passenger.seat}</span>
+                    <span className="text-sm font-medium text-gray-800">{ticket.seat}</span>
                   </div>
                 </div>
 
@@ -345,7 +388,7 @@ function ConfirmationPageContent() {
               
               {/* Individual Download Button */}
               <button
-                onClick={() => downloadPDF(passenger.id, passenger.name)}
+                onClick={() => downloadPDF(ticket.id, ticket.name)}
                 className="mt-6 inline-flex bg-brand-green hover:bg-brand-green-dark text-white font-bold text-sm px-6 py-3.5 rounded-xl shadow-xs hover:shadow-md transition items-center justify-center space-x-2 cursor-pointer no-print"
               >
                 <Download className="w-4.5 h-4.5 text-brand-yellow" />

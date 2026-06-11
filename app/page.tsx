@@ -94,7 +94,7 @@ export default async function Home() {
       
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative bg-[#0d5c31] text-white pt-10 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <section className="relative bg-[#0d5c31] text-white pt-10 pb-20 px-4 sm:px-6 lg:px-8 z-50">
           <div className="max-w-7xl mx-auto text-center relative z-10 space-y-5">
             {/* Top Badge */}
             <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 text-[13px] font-medium text-white shadow-sm">

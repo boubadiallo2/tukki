@@ -31,6 +31,8 @@ function SearchPageContent() {
   const to = searchParams.get("to") || "";
   const date = searchParams.get("date") || "";
   const passengers = searchParams.get("passengers") || "1";
+  const tripType = searchParams.get("tripType") || "oneway";
+  const returnDate = searchParams.get("returnDate") || "";
 
   // State
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -39,17 +41,26 @@ function SearchPageContent() {
   const [sortBy, setSortBy] = useState<string>("cheapest"); // "cheapest", "earliest", "duration"
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // Roundtrip specific state
+  const [phase, setPhase] = useState<"outbound" | "return">("outbound");
+  const [outboundTripId, setOutboundTripId] = useState<string | null>(null);
+
+  // Computed current search parameters based on phase
+  const currentFrom = phase === "outbound" ? from : to;
+  const currentTo = phase === "outbound" ? to : from;
+  const currentDate = phase === "outbound" ? date : returnDate;
+
   // Load trips when query changes
   useEffect(() => {
     async function fetchTrips() {
-      if (from && to && date) {
+      if (currentFrom && currentTo && currentDate) {
         try {
           const { data, error } = await supabase
             .from('trips')
             .select('*, companies(*), bookings(*)')
-            .eq('departure_city', from)
-            .eq('arrival_city', to)
-            .or(`trip_date.eq.${date},is_daily.eq.true`);
+            .eq('departure_city', currentFrom)
+            .eq('arrival_city', currentTo)
+            .or(`trip_date.eq.${currentDate},is_daily.eq.true`);
 
           if (error) {
             console.error("Error fetching trips:", error);
@@ -60,7 +71,7 @@ function SearchPageContent() {
             // Map Supabase data to the Trip interface used by the UI
             const formattedTrips: Trip[] = data.map((t: any) => {
               const relevantBookings = t.bookings?.filter((b:any) => 
-                b.travel_date === date && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')
+                b.travel_date === currentDate && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')
               ) || [];
               const bookedSeatsCount = relevantBookings.reduce((sum: number, b: any) => sum + (b.selected_seats?.length || 1), 0);
               const availableSeats = t.total_seats - bookedSeatsCount;
@@ -93,7 +104,7 @@ function SearchPageContent() {
     }
 
     fetchTrips();
-  }, [from, to, date]);
+  }, [currentFrom, currentTo, currentDate, phase]);
 
   // Handle operator filter toggle
   const handleOperatorToggle = (code: string) => {
@@ -163,7 +174,19 @@ function SearchPageContent() {
   ])).values());
 
   const handleReserve = (tripId: string) => {
-    router.push(`/booking?tripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
+    if (tripType === "roundtrip") {
+      if (phase === "outbound") {
+        setOutboundTripId(tripId);
+        setPhase("return");
+        setSelectedOperators([]);
+        setSelectedTimeRange([]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        router.push(`/booking?tripId=${outboundTripId}&returnTripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&returnDate=${returnDate}`);
+      }
+    } else {
+      router.push(`/booking?tripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
+    }
   };
 
   // Render search summary
@@ -175,24 +198,42 @@ function SearchPageContent() {
           <div className="space-y-1">
             <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-brand-yellow">
               <Calendar className="w-3.5 h-3.5" />
-              <span>{date ? new Date(date).toLocaleDateString("fr-FR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ""}</span>
+              <span>{currentDate ? new Date(currentDate).toLocaleDateString("fr-FR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ""}</span>
               <span>•</span>
               <Users className="w-3.5 h-3.5" />
               <span>{passengers} {parseInt(passengers) === 1 ? "Voyageur" : "Voyageurs"}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black">
-              {from} <span className="text-brand-yellow font-normal">➔</span> {to}
+              {currentFrom} <span className="text-brand-yellow font-normal">➔</span> {currentTo}
             </h2>
+            {tripType === "roundtrip" && (
+              <div className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
+                {phase === "outbound" ? "Étape 1 : Choix de l'Aller" : "Étape 2 : Choix du Retour"}
+              </div>
+            )}
           </div>
           
-          <button
-            onClick={() => {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold px-4 py-2.5 rounded-xl transition self-start md:self-center"
-          >
-            Modifier la recherche
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 self-start md:self-center">
+            {phase === "return" && (
+              <button
+                onClick={() => {
+                  setPhase("outbound");
+                  setOutboundTripId(null);
+                }}
+                className="bg-transparent hover:bg-white/10 text-white border border-white/40 text-xs font-bold px-4 py-2.5 rounded-xl transition"
+              >
+                Changer l'Aller
+              </button>
+            )}
+            <button
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold px-4 py-2.5 rounded-xl transition"
+            >
+              Modifier la recherche
+            </button>
+          </div>
         </div>
       </div>
     );
