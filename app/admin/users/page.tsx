@@ -191,7 +191,7 @@ export default function AdminUsersPage() {
                 </tr>
               ) : (
                 filteredProfiles.map((profile) => (
-                  <tr key={profile.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={profile.id} className="hover:bg-slate-50/50 transition-colors relative">
                     <td className="p-4 pl-6">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
@@ -232,10 +232,43 @@ export default function AdminUsersPage() {
                         })}
                       </p>
                     </td>
-                    <td className="p-4 text-center">
-                      <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+                    <td className="p-4 text-center relative">
+                      <button 
+                        onClick={() => {
+                          const dropdown = document.getElementById(`dropdown-${profile.id}`);
+                          if (dropdown) {
+                            dropdown.classList.toggle('hidden');
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            const dropdown = document.getElementById(`dropdown-${profile.id}`);
+                            if (dropdown) dropdown.classList.add('hidden');
+                          }, 200);
+                        }}
+                        className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none"
+                      >
                         <MoreVertical className="w-4 h-4" />
                       </button>
+                      
+                      {/* Dropdown Menu */}
+                      <div 
+                        id={`dropdown-${profile.id}`} 
+                        className="hidden absolute right-8 top-10 w-48 bg-white rounded-xl shadow-lg border border-slate-100 z-50 overflow-hidden"
+                      >
+                        <div className="py-1">
+                          <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-yellow font-medium transition-colors">
+                            Modifier le rôle
+                          </button>
+                          <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-yellow font-medium transition-colors">
+                            Détails de l'utilisateur
+                          </button>
+                          <div className="h-px bg-slate-100 my-1"></div>
+                          <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium transition-colors">
+                            Supprimer l'accès
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))
