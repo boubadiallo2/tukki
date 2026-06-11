@@ -13,7 +13,9 @@ import {
   Save,
   Loader2,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
@@ -36,8 +38,11 @@ export default function SettingsPage() {
     name: "",
     owner_phone: "",
     color: "#059669",
+    logo_url: "",
     amenities: [] as string[]
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCompanyData = async () => {
@@ -64,8 +69,10 @@ export default function SettingsPage() {
             name: company.name || "",
             owner_phone: company.owner_phone || "",
             color: company.color || "#059669",
+            logo_url: company.logo_url || "",
             amenities: company.amenities || []
           });
+          setLogoPreview(company.logo_url || null);
         }
       }
       setLoading(false);
@@ -94,12 +101,34 @@ export default function SettingsPage() {
     setErrorMsg("");
 
     try {
+      let finalLogoUrl = formData.logo_url;
+
+      // S'il y a un nouveau fichier logo
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${companyId}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('company-logos')
+          .upload(fileName, logoFile, { cacheControl: '3600', upsert: true });
+
+        if (uploadError) {
+          throw new Error("Erreur lors de l'upload du logo: " + uploadError.message);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('company-logos')
+          .getPublicUrl(fileName);
+          
+        finalLogoUrl = publicUrl;
+      }
+
       const { error } = await supabase
         .from('companies')
         .update({
           name: formData.name,
           owner_phone: formData.owner_phone,
           color: formData.color,
+          logo_url: finalLogoUrl,
           amenities: formData.amenities
         })
         .eq('id', companyId);
@@ -190,22 +219,61 @@ export default function SettingsPage() {
               <Palette className="w-5 h-5 mr-2 text-brand-green" />
               Identité visuelle
             </h2>
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">Couleur principale de la marque</label>
-              <p className="text-xs text-gray-500 mb-4">Cette couleur sera utilisée pour mettre en valeur votre compagnie sur les billets et l'interface client.</p>
-              
-              <div className="flex items-center space-x-4">
-                <div className="relative group">
-                  <input 
-                    type="color" 
-                    value={formData.color}
-                    onChange={(e) => setFormData({...formData, color: e.target.value})}
-                    className="w-14 h-14 rounded-2xl cursor-pointer border-2 border-white shadow-md p-0 overflow-hidden"
-                  />
+              <div className="flex flex-col sm:flex-row gap-8">
+                {/* Couleur */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Couleur principale</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative group">
+                      <input 
+                        type="color" 
+                        value={formData.color}
+                        onChange={(e) => setFormData({...formData, color: e.target.value})}
+                        className="w-14 h-14 rounded-2xl cursor-pointer border-2 border-white shadow-md p-0 overflow-hidden"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-gray-900 uppercase">{formData.color}</span>
+                      <span className="text-xs text-gray-500 font-medium">Cliquez pour modifier</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-black text-gray-900 uppercase">{formData.color}</span>
-                  <span className="text-xs text-gray-500 font-medium">Cliquez pour modifier</span>
+
+                {/* Logo */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Logo de la compagnie</label>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden shrink-0">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-6 h-6 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        id="logo-upload"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setLogoFile(file);
+                            setLogoPreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor="logo-upload"
+                        className="cursor-pointer inline-flex items-center space-x-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>Changer le logo</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1 font-medium">Format recommandé: PNG, JPG (1:1)</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
