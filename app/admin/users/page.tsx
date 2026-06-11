@@ -107,6 +107,51 @@ export default function AdminUsersPage() {
     }
   };
 
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [newRole, setNewRole] = useState("company");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleUpdateRole = async () => {
+    if (!selectedUser) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', selectedUser.id);
+        
+      if (error) throw error;
+      
+      setIsRoleModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la modification du rôle.");
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', selectedUser.id);
+        
+      if (error) throw error;
+      
+      setIsDeleteModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la suppression de l'utilisateur.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -256,15 +301,25 @@ export default function AdminUsersPage() {
                         id={`dropdown-${profile.id}`} 
                         className="hidden absolute right-8 top-10 w-48 bg-white rounded-xl shadow-lg border border-slate-100 z-50 overflow-hidden"
                       >
-                        <div className="py-1">
-                          <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-yellow font-medium transition-colors">
+                        <div className="py-1 flex flex-col items-start">
+                          <button 
+                            onMouseDown={() => {
+                              setSelectedUser(profile);
+                              setNewRole(profile.role);
+                              setIsRoleModalOpen(true);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-yellow font-medium transition-colors"
+                          >
                             Modifier le rôle
                           </button>
-                          <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-yellow font-medium transition-colors">
-                            Détails de l'utilisateur
-                          </button>
-                          <div className="h-px bg-slate-100 my-1"></div>
-                          <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium transition-colors">
+                          <div className="w-full h-px bg-slate-100 my-1"></div>
+                          <button 
+                            onMouseDown={() => {
+                              setSelectedUser(profile);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium transition-colors"
+                          >
                             Supprimer l'accès
                           </button>
                         </div>
@@ -277,6 +332,74 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
+
+      {/* Role Change Modal */}
+      {isRoleModalOpen && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl">
+            <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Modifier le rôle</h2>
+            <p className="text-slate-500 font-medium mb-6 text-sm leading-relaxed">
+              Choisissez le nouveau rôle pour <span className="text-slate-900 font-bold">{selectedUser.email}</span>.
+            </p>
+            
+            <div className="space-y-4 mb-8">
+              <label className="flex items-center p-4 border border-slate-200 rounded-2xl cursor-pointer hover:border-brand-yellow hover:bg-brand-yellow/5 transition-colors">
+                <input type="radio" name="role" value="super_admin" checked={newRole === 'super_admin'} onChange={(e) => setNewRole(e.target.value)} className="w-4 h-4 text-brand-yellow focus:ring-brand-yellow border-slate-300" />
+                <span className="ml-3 font-bold text-slate-900">Super Admin</span>
+              </label>
+              <label className="flex items-center p-4 border border-slate-200 rounded-2xl cursor-pointer hover:border-brand-yellow hover:bg-brand-yellow/5 transition-colors">
+                <input type="radio" name="role" value="company" checked={newRole === 'company'} onChange={(e) => setNewRole(e.target.value)} className="w-4 h-4 text-brand-yellow focus:ring-brand-yellow border-slate-300" />
+                <span className="ml-3 font-bold text-slate-900">Partenaire</span>
+              </label>
+              <label className="flex items-center p-4 border border-slate-200 rounded-2xl cursor-pointer hover:border-brand-yellow hover:bg-brand-yellow/5 transition-colors">
+                <input type="radio" name="role" value="client" checked={newRole === 'client'} onChange={(e) => setNewRole(e.target.value)} className="w-4 h-4 text-brand-yellow focus:ring-brand-yellow border-slate-300" />
+                <span className="ml-3 font-bold text-slate-900">Client</span>
+              </label>
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setIsRoleModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={handleUpdateRole}
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-900 bg-brand-yellow hover:bg-[#F2B000] shadow-sm transition-colors"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Modal */}
+      {isDeleteModalOpen && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl">
+            <h2 className="text-2xl font-black text-red-600 mb-2 tracking-tight">Supprimer l'utilisateur</h2>
+            <p className="text-slate-500 font-medium mb-6 text-sm leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer l'accès pour <span className="text-slate-900 font-bold">{selectedUser.email}</span> ? Cette action désactivera son profil.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={handleDeleteUser}
+                className="px-5 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-colors"
+              >
+                Oui, supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
