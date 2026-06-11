@@ -33,16 +33,38 @@ export interface Booking {
 
 export const CITIES = [
   "Dakar",
-  "Touba",
+  "Pikine",
+  "Guédiawaye",
+  "Rufisque",
   "Thiès",
   "Mbour",
-  "Kaolack",
+  "Tivaouane",
+  "Joal-Fadiouth",
   "Saint-Louis",
-  "Ziguinchor",
+  "Richard-Toll",
+  "Podor",
+  "Louga",
+  "Linguère",
   "Diourbel",
+  "Touba",
+  "Mbacké",
+  "Bambey",
+  "Kaolack",
+  "Nioro du Rip",
+  "Fatick",
+  "Foundiougne",
+  "Kaffrine",
   "Tambacounda",
+  "Bakel",
+  "Kédougou",
   "Kolda",
-  "Louga"
+  "Vélingara",
+  "Sédhiou",
+  "Ziguinchor",
+  "Bignona",
+  "Cap Skirring",
+  "Matam",
+  "Ouro Sogui"
 ];
 
 export const OPERATORS = [
