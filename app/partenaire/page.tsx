@@ -1,8 +1,17 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { Mail, Phone, Building2, ShieldCheck, TrendingUp } from "lucide-react";
+import { supabase } from "@/app/lib/supabaseClient";
 
-export default function PartenairePage() {
+export default async function PartenairePage() {
+  const { data: settings } = await supabase
+    .from('platform_settings')
+    .select('support_phone, support_email')
+    .eq('id', 1)
+    .single();
+
+  const phone = settings?.support_phone || "+221 33 824 00 00";
+  const email = settings?.support_email || "partenaires@tukki.sn";
   return (
     <>
       <Header />
@@ -54,14 +63,14 @@ export default function PartenairePage() {
                     <div className="bg-brand-yellow/20 p-2 rounded-lg">
                       <Phone className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-xl tracking-tight">+221 33 824 00 00</span>
+                    <span className="font-bold text-xl tracking-tight">{phone}</span>
                   </div>
                   <div className="hidden sm:block text-gray-600">|</div>
                   <div className="flex items-center space-x-3">
                     <div className="bg-brand-yellow/20 p-2 rounded-lg">
                       <Mail className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-xl tracking-tight">partenaires@tukki.sn</span>
+                    <span className="font-bold text-xl tracking-tight">{email}</span>
                   </div>
                 </div>
               </div>
