@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2, Phone, AlertTriangle, Check } from "lucide-react";
+import { Search, Building2, MapPin, CheckCircle, Plus, X, Loader2, Trash2, Edit2, Phone, AlertTriangle, Check, Clock, Ban, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default function AdminCompaniesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTab, setCurrentTab] = useState<'PENDING' | 'APPROVED' | 'SUSPENDED'>('PENDING');
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -253,9 +254,33 @@ export default function AdminCompaniesPage() {
     }
   };
 
+  const handleChangeStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({ status: newStatus })
+        .eq('id', id);
+      if (error) throw error;
+      fetchCompanies();
+      setAlertContent({
+        type: 'success',
+        title: "Statut mis à jour",
+        message: "Le statut de la compagnie a été modifié avec succès."
+      });
+    } catch (err: any) {
+      console.error(err);
+      setAlertContent({
+        type: 'error',
+        title: "Erreur",
+        message: err.message
+      });
+    }
+  };
+
   const filteredCompanies = companies.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.code.toLowerCase().includes(searchTerm.toLowerCase())
+    (c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.code.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (c.status || 'APPROVED') === currentTab
   );
 
   return (
@@ -280,7 +305,36 @@ export default function AdminCompaniesPage() {
 
       {/* Filters and Search */}
       <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-[400px]">
+        
+        {/* Tabs */}
+        <div className="flex space-x-1 bg-gray-100/50 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
+          <button
+            onClick={() => setCurrentTab('PENDING')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
+              currentTab === 'PENDING' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            En attente
+          </button>
+          <button
+            onClick={() => setCurrentTab('APPROVED')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
+              currentTab === 'APPROVED' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Approuvées
+          </button>
+          <button
+            onClick={() => setCurrentTab('SUSPENDED')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
+              currentTab === 'SUSPENDED' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Suspendues
+          </button>
+        </div>
+
+        <div className="relative w-full sm:w-[300px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input 
             type="text"
@@ -359,13 +413,45 @@ export default function AdminCompaniesPage() {
                     )}
                   </td>
                   <td className="p-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Actif
-                    </span>
+                    {company.status === 'PENDING' && (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                        <Clock className="w-3 h-3 mr-1" />
+                        En attente
+                      </span>
+                    )}
+                    {(company.status === 'APPROVED' || !company.status) && (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Approuvée
+                      </span>
+                    )}
+                    {company.status === 'SUSPENDED' && (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-100">
+                        <Ban className="w-3 h-3 mr-1" />
+                        Suspendue
+                      </span>
+                    )}
                   </td>
                   <td className="p-4 pr-6 text-right">
                     <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {(company.status === 'PENDING' || company.status === 'SUSPENDED') && (
+                        <button 
+                          onClick={() => handleChangeStatus(company.id, 'APPROVED')}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" 
+                          title="Approuver"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {(company.status === 'APPROVED' || !company.status) && (
+                        <button 
+                          onClick={() => handleChangeStatus(company.id, 'SUSPENDED')}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" 
+                          title="Suspendre"
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+                      )}
                       <button 
                         onClick={() => openEditModal(company)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
