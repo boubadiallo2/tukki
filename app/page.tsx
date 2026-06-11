@@ -4,7 +4,9 @@ import SearchForm from "./components/SearchForm";
 import { ShieldCheck, Leaf, CreditCard, Sparkles, MapPin, Star, Flame, ArrowRight, Compass, Ticket, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
-const POPULAR_DESTINATIONS = [
+import { supabase } from "./lib/supabaseClient";
+
+const FALLBACK_DESTINATIONS = [
   {
     from: "Dakar",
     to: "Saint-Louis",
@@ -43,7 +45,49 @@ const POPULAR_DESTINATIONS = [
   }
 ];
 
-export default function Home() {
+export default async function Home() {
+  let popularDestinations = [...FALLBACK_DESTINATIONS];
+
+  try {
+    const { data: trips, error } = await supabase
+      .from('trips')
+      .select('departure_city, arrival_city, price, duration, is_daily, companies(rating)')
+      .limit(50); // Get enough to find unique ones
+
+    if (!error && trips && trips.length > 0) {
+      const uniqueRoutes = new Map();
+      trips.forEach(t => {
+        const key = `${t.departure_city}-${t.arrival_city}`;
+        if (!uniqueRoutes.has(key)) {
+          uniqueRoutes.set(key, {
+            from: t.departure_city,
+            to: t.arrival_city,
+            price: t.price,
+            time: t.duration,
+            rating: parseFloat((t.companies as any)?.rating) || 4.8,
+            tag: t.is_daily ? "Quotidien" : "Tendance"
+          });
+        }
+      });
+
+      const uniqueTrips = Array.from(uniqueRoutes.values()).slice(0, 4);
+      if (uniqueTrips.length > 0) {
+        const bgGradients = [
+          "from-emerald-600 to-teal-800",
+          "from-blue-600 to-indigo-800",
+          "from-cyan-600 to-blue-800",
+          "from-orange-500 to-red-700"
+        ];
+        
+        popularDestinations = uniqueTrips.map((dest, i) => ({
+          ...dest,
+          bgGradient: bgGradients[i % 4]
+        }));
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch popular trips", err);
+  }
   return (
     <>
       <Header />
@@ -170,14 +214,14 @@ export default function Home() {
                 <h2 className="text-3xl font-black text-gray-900 tracking-tight">Lignes Populaires au Sénégal</h2>
                 <p className="text-gray-500 font-medium mt-1">Déplacez-vous confortablement entre nos grandes villes et régions.</p>
               </div>
-              <div className="flex items-center space-x-1 text-sm font-bold text-brand-green hover:underline">
+              <Link href="/search" className="flex items-center space-x-1 text-sm font-bold text-brand-green hover:underline">
                 <span>Voir tous les trajets</span>
                 <ArrowRight className="w-4 h-4" />
-              </div>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {POPULAR_DESTINATIONS.map((dest) => (
+              {popularDestinations.map((dest) => (
                 <Link
                   key={`${dest.from}-${dest.to}`}
                   href={`/search?from=${dest.from}&to=${dest.to}&date=2026-06-15`}
