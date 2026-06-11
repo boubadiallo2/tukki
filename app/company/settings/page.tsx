@@ -182,7 +182,7 @@ export default function SettingsPage() {
           {/* Informations générales */}
           <div>
             <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center">
-              <Building2 className="w-5 h-5 mr-2 text-brand-green" />
+              <Building2 className="w-5 h-5 mr-2" style={{ color: formData.color || '#059669' }} />
               Informations générales
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -216,7 +216,7 @@ export default function SettingsPage() {
           {/* Identité visuelle */}
           <div>
             <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center">
-              <Palette className="w-5 h-5 mr-2 text-brand-green" />
+              <Palette className="w-5 h-5 mr-2" style={{ color: formData.color || '#059669' }} />
               Identité visuelle
             </h2>
               <div className="flex flex-col sm:flex-row gap-8">
@@ -283,7 +283,7 @@ export default function SettingsPage() {
           {/* Services à bord */}
           <div>
             <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center">
-              <Wifi className="w-5 h-5 mr-2 text-brand-green" />
+              <Wifi className="w-5 h-5 mr-2" style={{ color: formData.color || '#059669' }} />
               Services à bord standards
             </h2>
             <p className="text-sm text-gray-500 font-medium mb-4">
@@ -300,11 +300,15 @@ export default function SettingsPage() {
                     onClick={() => toggleAmenity(amenity.id)}
                     className={`flex items-center space-x-3 p-3 rounded-xl border text-left transition-all ${
                       isSelected 
-                        ? "border-brand-green bg-brand-green/5 ring-1 ring-brand-green" 
-                        : "border-gray-200 bg-white hover:border-brand-green/30 hover:bg-gray-50"
+                        ? "bg-opacity-5" 
+                        : "border-gray-200 bg-white hover:bg-gray-50"
                     }`}
+                    style={isSelected ? { borderColor: formData.color || '#059669', backgroundColor: `${formData.color}10` || '#05966910' } : {}}
                   >
-                    <div className={`p-2 rounded-lg ${isSelected ? "bg-brand-green text-white" : "bg-gray-100 text-gray-500"}`}>
+                    <div 
+                      className={`p-2 rounded-lg ${!isSelected ? "bg-gray-100 text-gray-500" : "text-white"}`}
+                      style={isSelected ? { backgroundColor: formData.color || '#059669' } : {}}
+                    >
                       <amenity.icon className="w-4 h-4" />
                     </div>
                     <span className={`text-sm font-bold ${isSelected ? "text-gray-900" : "text-gray-600"}`}>
@@ -322,7 +326,8 @@ export default function SettingsPage() {
           <button 
             type="submit" 
             disabled={saving}
-            className="bg-brand-green text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-brand-green-dark transition-all flex items-center space-x-2 disabled:opacity-70 active:scale-95"
+            className="text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center space-x-2 disabled:opacity-70 active:scale-95 hover:opacity-90"
+            style={{ backgroundColor: formData.color || '#059669' }}
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
