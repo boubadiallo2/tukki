@@ -40,6 +40,9 @@ function BookingPageContent() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"wave" | "orange_money" | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Load trip details
   useEffect(() => {
@@ -125,56 +128,68 @@ function BookingPageContent() {
       return;
     }
 
+    // Open payment modal instead of submitting immediately
+    setShowPaymentModal(true);
+  };
+
+  // Save booking to Supabase
+  const submitBooking = async () => {
+    try {
+      const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
+      const passengersName = names.map(n => n.trim()).join(", ");
+      const finalPrice = trip!.price * passengersCount + 100 * passengersCount;
+
+      const { error: insertError } = await supabase.from('bookings').insert({
+        trip_id: trip!.id,
+        passenger_name: passengersName,
+        passenger_phone: phone,
+        passenger_email: email || null,
+        selected_seats: selectedSeats,
+        total_price: finalPrice,
+        booking_number: randomId,
+        travel_date: date,
+        payment_status: 'PAID' // Assuming paid via Wave/OM
+      });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Redirect to confirmation
+      const query = new URLSearchParams({
+        bookingNumber: randomId,
+        name: passengersName,
+        phone,
+        email,
+        seats: selectedSeats.join(","),
+        tripId: trip!.id,
+        from: trip!.departureCity,
+        to: trip!.arrivalCity,
+        date: date,
+        departureTime: trip!.departureTime,
+        arrivalTime: trip!.arrivalTime,
+        operator: trip!.companyName,
+        price: finalPrice.toString()
+      });
+      router.push(`/confirmation?${query.toString()}`);
+
+    } catch (err) {
+      console.error(err);
+      setError("Une erreur est survenue lors de la réservation. Veuillez réessayer.");
+      setIsSubmitting(false);
+      setShowPaymentModal(false);
+    }
+  };
+
+  const handlePayment = (method: "wave" | "orange_money") => {
+    setPaymentMethod(method);
+    setIsProcessingPayment(true);
     setIsSubmitting(true);
     
-    // Save booking to Supabase
-    const submitBooking = async () => {
-      try {
-        const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
-        const passengersName = names.map(n => n.trim()).join(", ");
-        const finalPrice = trip.price * passengersCount + 100 * passengersCount;
-
-        const { error: insertError } = await supabase.from('bookings').insert({
-          trip_id: trip.id,
-          passenger_name: passengersName,
-          passenger_phone: phone,
-          passenger_email: email || null,
-          selected_seats: selectedSeats,
-          total_price: finalPrice,
-          booking_number: randomId,
-          travel_date: date,
-        });
-
-        if (insertError) {
-          throw insertError;
-        }
-
-        // Redirect to confirmation
-        const query = new URLSearchParams({
-          bookingNumber: randomId,
-          name: passengersName,
-          phone,
-          email,
-          seats: selectedSeats.join(","),
-          tripId: trip.id,
-          from: trip.departureCity,
-          to: trip.arrivalCity,
-          date: date,
-          departureTime: trip.departureTime,
-          arrivalTime: trip.arrivalTime,
-          operator: trip.companyName,
-          price: finalPrice.toString()
-        });
-        router.push(`/confirmation?${query.toString()}`);
-
-      } catch (err) {
-        console.error(err);
-        setError("Une erreur est survenue lors de la réservation. Veuillez réessayer.");
-        setIsSubmitting(false);
-      }
-    };
-
-    submitBooking();
+    // Simulate payment processing delay (2.5s)
+    setTimeout(() => {
+      submitBooking();
+    }, 2500);
   };
 
   // Generate seat map arrays (9 rows, 4 columns)
@@ -545,6 +560,81 @@ function BookingPageContent() {
           </div>
         </div>
       </main>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isProcessingPayment && setShowPaymentModal(false)}></div>
+          
+          {/* Modal Box */}
+          <div className="relative bg-white rounded-3xl p-6 sm:p-8 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+            {!isProcessingPayment ? (
+              <>
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">Paiement Mobile</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-2">
+                    Choisissez votre méthode de paiement pour régler <span className="font-bold text-gray-900">{totalPrice.toLocaleString()} FCFA</span>
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <button
+                    onClick={() => handlePayment('wave')}
+                    className="w-full flex items-center p-4 rounded-2xl border-2 border-[#1279F2]/20 hover:border-[#1279F2] bg-[#1279F2]/5 hover:bg-[#1279F2]/10 transition-all group"
+                  >
+                    <div className="w-12 h-12 bg-[#1279F2] rounded-xl flex items-center justify-center text-white font-black text-xl italic tracking-tighter shrink-0 group-hover:scale-105 transition-transform">
+                      Wave
+                    </div>
+                    <div className="ml-4 text-left">
+                      <span className="block font-black text-gray-900 text-lg">Payer par Wave</span>
+                      <span className="block text-xs font-semibold text-gray-500">Paiement sécurisé et instantané</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handlePayment('orange_money')}
+                    className="w-full flex items-center p-4 rounded-2xl border-2 border-[#FF7900]/20 hover:border-[#FF7900] bg-[#FF7900]/5 hover:bg-[#FF7900]/10 transition-all group"
+                  >
+                    <div className="w-12 h-12 bg-[#FF7900] rounded-xl flex items-center justify-center text-white font-black text-2xl shrink-0 group-hover:scale-105 transition-transform">
+                      O
+                    </div>
+                    <div className="ml-4 text-left">
+                      <span className="block font-black text-gray-900 text-lg">Orange Money</span>
+                      <span className="block text-xs font-semibold text-gray-500">Paiement via #144#</span>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="mt-8 pt-4 border-t border-gray-100 flex justify-center">
+                  <button 
+                    onClick={() => setShowPaymentModal(false)}
+                    className="text-sm font-bold text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-6">
+                <div className="relative w-20 h-20">
+                  <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${paymentMethod === 'wave' ? 'bg-[#1279F2]' : 'bg-[#FF7900]'}`}></div>
+                  <div className={`absolute inset-0 rounded-full border-4 border-t-transparent animate-spin ${paymentMethod === 'wave' ? 'border-[#1279F2]' : 'border-[#FF7900]'}`}></div>
+                  <div className={`absolute inset-2 rounded-full flex items-center justify-center text-white font-black italic ${paymentMethod === 'wave' ? 'bg-[#1279F2] text-sm' : 'bg-[#FF7900] text-xl'}`}>
+                    {paymentMethod === 'wave' ? 'Wave' : 'O'}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">En attente de validation...</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-2 max-w-[250px] mx-auto">
+                    Veuillez valider le paiement sur votre application {paymentMethod === 'wave' ? 'Wave' : 'Orange Money'}.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Footer />
     </>
