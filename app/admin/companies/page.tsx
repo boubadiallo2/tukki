@@ -256,11 +256,16 @@ export default function AdminCompaniesPage() {
 
   const handleChangeStatus = async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('companies')
         .update({ status: newStatus })
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
+        
       if (error) throw error;
+      if (!data) throw new Error("Permission refusée. Vous n'avez pas les droits de Super Admin (RLS).");
+      
       fetchCompanies();
       setAlertContent({
         type: 'success',
@@ -271,8 +276,8 @@ export default function AdminCompaniesPage() {
       console.error(err);
       setAlertContent({
         type: 'error',
-        title: "Erreur",
-        message: err.message
+        title: "Erreur de mise à jour",
+        message: err.message || "Impossible de mettre à jour le statut."
       });
     }
   };
