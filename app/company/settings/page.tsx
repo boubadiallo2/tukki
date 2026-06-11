@@ -277,7 +277,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-          </div>
 
           <hr className="border-gray-100" />
 
