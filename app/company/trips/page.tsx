@@ -105,6 +105,7 @@ export default function TripsPage() {
     setNewArrTime(trip.arrival_time.substring(0, 5));
     setNewPrice(trip.price.toString());
     setNewTotalSeats(trip.total_seats.toString());
+    setNewCreateInverse(false);
     setIsEditModalOpen(true);
   };
 
@@ -240,6 +241,24 @@ export default function TripsPage() {
 
       if (error) throw error;
 
+      if (newCreateInverse && companyId) {
+        const { error: inverseError } = await supabase.from('trips').insert({
+          company_id: companyId,
+          departure_city: newTo,
+          arrival_city: newFrom,
+          trip_date: newIsDaily ? null : newDate,
+          is_daily: newIsDaily,
+          departure_time: newDepTime,
+          arrival_time: newArrTime,
+          duration: duration,
+          price: parseInt(newPrice, 10),
+          total_seats: totalSeatsNum,
+          available_seats: totalSeatsNum,
+          occupied_seats: []
+        });
+        if (inverseError) throw inverseError;
+      }
+
       setIsEditModalOpen(false);
       fetchTrips();
       
@@ -350,21 +369,19 @@ export default function TripsPage() {
         </div>
       </div>
 
-      {!isEdit && (
-        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mt-4">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={newCreateInverse}
-              onChange={(e) => setNewCreateInverse(e.target.checked)}
-              className="w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
-            />
-            <span className="text-sm font-bold text-gray-900">
-              Créer automatiquement le trajet inverse ({newTo} ➔ {newFrom})
-            </span>
-          </label>
-        </div>
-      )}
+      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mt-4">
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={newCreateInverse}
+            onChange={(e) => setNewCreateInverse(e.target.checked)}
+            className="w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
+          />
+          <span className="text-sm font-bold text-gray-900">
+            Créer automatiquement le trajet inverse ({newTo} ➔ {newFrom})
+          </span>
+        </label>
+      </div>
 
       <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3 mt-6">
         <button 
