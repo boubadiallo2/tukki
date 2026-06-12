@@ -44,6 +44,8 @@ function SearchPageContent() {
   // Roundtrip specific state
   const [phase, setPhase] = useState<"outbound" | "return">("outbound");
   const [outboundTripId, setOutboundTripId] = useState<string | null>(null);
+  const [isReserving, setIsReserving] = useState(false);
+  const [reserveError, setReserveError] = useState("");
 
   // Computed current search parameters based on phase
   const currentFrom = phase === "outbound" ? from : to;
@@ -173,22 +175,38 @@ function SearchPageContent() {
     { code: t.companyCode, name: t.companyName, rating: t.rating }
   ])).values());
 
-  const handleReserve = (tripId: string) => {
+  const handleReserve = async (tripId: string) => {
     if (tripType === "roundtrip") {
       if (phase === "outbound") {
-        setOutboundTripId(tripId);
-        setPhase("return");
-        
-        // Lock the return trip to the same company as the outbound trip
+        setIsReserving(true);
+        setReserveError("");
         const outboundTrip = trips.find((t) => t.id === tripId);
-        if (outboundTrip) {
-          setSelectedOperators([outboundTrip.companyCode]);
-        } else {
-          setSelectedOperators([]);
-        }
         
-        setSelectedTimeRange([]);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        try {
+          const { data, error } = await supabase
+            .from('trips')
+            .select('*, companies!inner(*)')
+            .eq('departure_city', to)
+            .eq('arrival_city', from)
+            .eq('companies.code', outboundTrip?.companyCode)
+            .or(`trip_date.eq.${returnDate},is_daily.eq.true`)
+            .order('departure_time', { ascending: true })
+            .limit(1);
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            const returnTrip = data[0];
+            router.push(`/booking?tripId=${tripId}&returnTripId=${returnTrip.id}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&returnDate=${returnDate}`);
+          } else {
+            setReserveError(`Aucun trajet retour trouvé pour la compagnie ${outboundTrip?.companyName} le ${new Date(returnDate).toLocaleDateString("fr-FR")}.`);
+          }
+        } catch (err) {
+          console.error("Error finding return trip", err);
+          setReserveError("Erreur lors de la recherche du trajet retour.");
+        } finally {
+          setIsReserving(false);
+        }
       } else {
         router.push(`/booking?tripId=${outboundTripId}&returnTripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&returnDate=${returnDate}`);
       }
@@ -216,7 +234,7 @@ function SearchPageContent() {
             </h2>
             {tripType === "roundtrip" && (
               <div className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
-                {phase === "outbound" ? "Étape 1 : Choix de l'Aller" : "Étape 2 : Choix du Retour"}
+                Aller-retour (Le retour est réservé automatiquement avec la même compagnie)
               </div>
             )}
           </div>
@@ -380,6 +398,14 @@ function SearchPageContent() {
                 </div>
               </div>
 
+              {/* Reserve Error */}
+              {reserveError && (
+                <div className="flex items-center space-x-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100 animate-shake">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{reserveError}</span>
+                </div>
+              )}
+
               {/* Trips List */}
               {filteredTrips.length === 0 ? (
                 <div className="bg-white rounded-3xl p-12 border border-gray-100 shadow-xs text-center space-y-4 max-w-lg mx-auto">
@@ -482,7 +508,8 @@ function SearchPageContent() {
 
                           <button
                             onClick={() => handleReserve(trip.id)}
-                            className="bg-brand-green hover:bg-brand-green-dark text-white font-bold text-sm px-6 py-3 rounded-xl shadow-xs hover:shadow-md transition duration-200 flex items-center justify-center space-x-1.5 group cursor-pointer"
+                            disabled={isReserving}
+                            className={`bg-brand-green hover:bg-brand-green-dark text-white font-bold text-sm px-6 py-3 rounded-xl shadow-xs hover:shadow-md transition duration-200 flex items-center justify-center space-x-1.5 group cursor-pointer ${isReserving ? 'opacity-50 cursor-wait' : ''}`}
                           >
                             <span>Réserver</span>
                             <ChevronRight className="w-4 h-4 transition group-hover:translate-x-1" />
