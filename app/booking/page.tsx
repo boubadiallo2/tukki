@@ -138,33 +138,38 @@ function BookingPageContent() {
     e.preventDefault();
     setError("");
 
+    const showError = (msg: string) => {
+      setError(msg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     if (!trip) {
-      setError("Détails du voyage invalides.");
+      showError("Détails du voyage invalides.");
       return;
     }
 
     if (names.some(n => !n.trim())) {
-      setError("Veuillez entrer le nom complet pour chaque passager.");
+      showError("Veuillez entrer le nom complet pour chaque passager.");
       return;
     }
 
     if (names.some(n => n.trim().length < 3)) {
-      setError("Le nom complet doit faire au moins 3 caractères pour chaque passager.");
+      showError("Le nom complet doit faire au moins 3 caractères pour chaque passager.");
       return;
     }
 
     if (!phone.trim()) {
-      setError("Veuillez entrer un numéro de téléphone de contact.");
+      showError("Veuillez entrer un numéro de téléphone de contact.");
       return;
     }
 
     if (selectedSeats.length < passengersCount) {
-      setError(`Veuillez choisir exactement ${passengersCount} place(s) pour le trajet ALLER. Actuel : ${selectedSeats.length}/${passengersCount}`);
+      showError(`Veuillez choisir exactement ${passengersCount} place(s) pour le trajet ALLER. Actuel : ${selectedSeats.length}/${passengersCount}`);
       return;
     }
 
     if (returnTrip && selectedReturnSeats.length < passengersCount) {
-      setError(`Veuillez choisir exactement ${passengersCount} place(s) pour le trajet RETOUR. Actuel : ${selectedReturnSeats.length}/${passengersCount}`);
+      showError(`Veuillez choisir exactement ${passengersCount} place(s) pour le trajet RETOUR. Actuel : ${selectedReturnSeats.length}/${passengersCount}`);
       return;
     }
 
@@ -240,7 +245,7 @@ function BookingPageContent() {
 
       } catch (err) {
         console.error(err);
-        setError("Une erreur est survenue lors de la réservation. Veuillez réessayer.");
+        showError("Une erreur est survenue lors de la réservation. Veuillez réessayer.");
         setIsSubmitting(false);
       }
     };
