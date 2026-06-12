@@ -178,7 +178,15 @@ function SearchPageContent() {
       if (phase === "outbound") {
         setOutboundTripId(tripId);
         setPhase("return");
-        setSelectedOperators([]);
+        
+        // Lock the return trip to the same company as the outbound trip
+        const outboundTrip = trips.find((t) => t.id === tripId);
+        if (outboundTrip) {
+          setSelectedOperators([outboundTrip.companyCode]);
+        } else {
+          setSelectedOperators([]);
+        }
+        
         setSelectedTimeRange([]);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {

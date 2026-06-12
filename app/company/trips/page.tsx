@@ -33,6 +33,7 @@ export default function TripsPage() {
   const [newArrTime, setNewArrTime] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newTotalSeats, setNewTotalSeats] = useState("50");
+  const [newCreateInverse, setNewCreateInverse] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchTrips = async () => {
@@ -86,6 +87,7 @@ export default function TripsPage() {
     setNewArrTime("");
     setNewPrice("");
     setNewTotalSeats("50");
+    setNewCreateInverse(false);
   };
 
   const openAddModal = () => {
@@ -150,7 +152,7 @@ export default function TripsPage() {
       const duration = computeDuration(newDepTime, newArrTime);
       const totalSeatsNum = parseInt(newTotalSeats, 10);
 
-      const { error } = await supabase.from('trips').insert({
+      const tripsToInsert = [{
         company_id: companyId,
         departure_city: newFrom,
         arrival_city: newTo,
@@ -163,7 +165,26 @@ export default function TripsPage() {
         total_seats: totalSeatsNum,
         available_seats: totalSeatsNum, // All seats available initially
         occupied_seats: []
-      });
+      }];
+
+      if (newCreateInverse) {
+        tripsToInsert.push({
+          company_id: companyId,
+          departure_city: newTo,
+          arrival_city: newFrom,
+          trip_date: newIsDaily ? null : newDate,
+          is_daily: newIsDaily,
+          departure_time: newDepTime,
+          arrival_time: newArrTime,
+          duration: duration,
+          price: parseInt(newPrice, 10),
+          total_seats: totalSeatsNum,
+          available_seats: totalSeatsNum,
+          occupied_seats: []
+        });
+      }
+
+      const { error } = await supabase.from('trips').insert(tripsToInsert);
 
       if (error) throw error;
 
@@ -328,6 +349,22 @@ export default function TripsPage() {
           />
         </div>
       </div>
+
+      {!isEdit && (
+        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mt-4">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={newCreateInverse}
+              onChange={(e) => setNewCreateInverse(e.target.checked)}
+              className="w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
+            />
+            <span className="text-sm font-bold text-gray-900">
+              Créer automatiquement le trajet inverse ({newTo} ➔ {newFrom})
+            </span>
+          </label>
+        </div>
+      )}
 
       <div className="pt-4 border-t border-gray-100 flex justify-end space-x-3 mt-6">
         <button 
