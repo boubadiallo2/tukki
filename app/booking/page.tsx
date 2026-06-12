@@ -193,7 +193,7 @@ function BookingPageContent() {
           passenger_email: email || null,
           selected_seats: selectedSeats,
           total_price: outboundPrice,
-          booking_number: randomId,
+          booking_number: returnTrip ? `${randomId}-A` : randomId,
           travel_date: date,
         });
 
@@ -208,7 +208,7 @@ function BookingPageContent() {
             passenger_email: email || null,
             selected_seats: selectedReturnSeats,
             total_price: returnPrice,
-            booking_number: randomId,
+            booking_number: `${randomId}-R`,
             travel_date: returnDate,
           });
 
@@ -243,9 +243,9 @@ function BookingPageContent() {
         
         router.push(`/confirmation?${query.toString()}`);
 
-      } catch (err) {
-        console.error(err);
-        showError("Une erreur est survenue lors de la réservation. Veuillez réessayer.");
+      } catch (err: any) {
+        console.error("Booking Error:", err);
+        showError(`Une erreur est survenue lors de la réservation: ${err.message || err.toString()}`);
         setIsSubmitting(false);
       }
     };
