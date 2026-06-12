@@ -19,7 +19,8 @@ import {
   Star,
   Info,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  X
 } from "lucide-react";
 
 function SearchPageContent() {
@@ -400,9 +401,26 @@ function SearchPageContent() {
 
               {/* Reserve Error */}
               {reserveError && (
-                <div className="flex items-center space-x-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100 animate-shake">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <span>{reserveError}</span>
+                <div className="relative overflow-hidden bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-red-100 animate-in slide-in-from-top-4 fade-in duration-300">
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 rounded-l-2xl"></div>
+                  <div className="absolute -right-6 -top-6 w-24 h-24 bg-red-50 rounded-full blur-2xl opacity-60 pointer-events-none"></div>
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0 border border-red-100">
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                    </div>
+                    <div className="flex-1 pt-0.5">
+                      <h3 className="text-sm font-black text-gray-900 mb-1">Trajet retour indisponible</h3>
+                      <p className="text-sm text-gray-600 font-medium leading-relaxed">
+                        {reserveError}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setReserveError("")}
+                      className="p-2 hover:bg-gray-50 rounded-full transition-colors self-start shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
 
