@@ -14,6 +14,7 @@ import {
   Loader2
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
+import Link from "next/link";
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -298,7 +299,7 @@ export default function AdminDashboardPage() {
                 {[30, 45, 40, 60, 55, 80, 95].map((height, i) => (
                   <div key={i} className="w-full flex flex-col justify-end items-center group">
                     <div 
-                      className="w-full bg-brand-yellow/30 group-hover:bg-brand-yellow rounded-t-sm transition-colors relative"
+                      className="w-full bg-[#FBC02D]/30 group-hover:bg-[#FBC02D] rounded-t-sm transition-colors relative"
                       style={{ height: `${height}%` }}
                     >
                       <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -317,7 +318,7 @@ export default function AdminDashboardPage() {
             <div className="bg-white p-7 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-black text-gray-900">Top Partenaires</h2>
-                <button className="text-slate-600 hover:text-slate-900 hover:underline text-xs font-bold">Voir tout</button>
+                <Link href="/admin/companies" className="text-slate-600 hover:text-slate-900 hover:underline text-xs font-bold">Voir tout</Link>
               </div>
               <div className="space-y-4">
                 {topCompanies.map((company, index) => (
