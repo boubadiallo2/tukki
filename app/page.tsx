@@ -143,56 +143,52 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
               <h2 className="text-3xl font-black text-gray-900 tracking-tight">
-                Conçu pour les Voyageurs Modernes
+                Pourquoi TUKKI ?
               </h2>
-              <p className="text-gray-600 font-medium">
-                Nous associons tarifs abordables, flexibilité et éco-responsabilité. Voici ce qui fait notre force :
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {/* Feature 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
               <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100/60 hover:shadow-md hover:-translate-y-1 transition duration-300">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-brand-green flex items-center justify-center mb-5">
-                  <Leaf className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Trajets Éco-responsables</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  Choisissez nos navettes 100% électriques ou nos bus de dernière génération pour réduire drastiquement votre impact environnemental.
-                </p>
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-brand-green flex items-center justify-center text-2xl mb-5">🔍</div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Comparez plusieurs compagnies</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">Comparez les horaires, les prix et les disponibilités des compagnies de transport sur une seule plateforme.</p>
               </div>
-
-              {/* Feature 2 */}
               <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100/60 hover:shadow-md hover:-translate-y-1 transition duration-300">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-5">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Sécurité Garantie</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  Chauffeurs professionnels qualifiés, véhicules assurés et géolocalisés, et assistance téléphonique 24h/24.
-                </p>
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-5">🎫</div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Réservation instantanée</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">Réservez votre ticket en quelques clics et recevez votre confirmation immédiatement.</p>
               </div>
-
-              {/* Feature 3 */}
               <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100/60 hover:shadow-md hover:-translate-y-1 transition duration-300">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-5">
-                  <CreditCard className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Paiement Mobile Local</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  Payez en toute sécurité via Wave, Orange Money ou carte. Annulation gratuite et remboursement rapide jusqu'à 24h avant.
-                </p>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-5">📱</div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Paiement mobile sécurisé</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">Payez facilement avec Wave, Orange Money ou Free Money sans vous déplacer.</p>
               </div>
-
-              {/* Feature 4 */}
               <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100/60 hover:shadow-md hover:-translate-y-1 transition duration-300">
-                <div className="w-12 h-12 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center mb-5">
-                  <Star className="w-6 h-6 text-brand-green" />
+                <div className="w-12 h-12 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center text-2xl mb-5">🚍</div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Plus de destinations</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">Accédez aux trajets vers Touba, Saint-Louis, Kaolack, Tambacounda, Kolda et bien d'autres villes.</p>
+              </div>
+            </div>
+
+            {/* Trust Counter */}
+            <div className="bg-brand-green/5 rounded-3xl border border-brand-green/10 p-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div>
+                  <div className="text-3xl font-black text-brand-green mb-1">+10</div>
+                  <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">compagnies partenaires</div>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Confort Premium</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  Profitez de notre Wi-Fi à bord, de prises USB individuelles pour charger votre téléphone, de la climatisation et de sièges spacieux.
-                </p>
+                <div>
+                  <div className="text-3xl font-black text-brand-green mb-1">+50</div>
+                  <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">destinations</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-brand-green mb-1">+5 000</div>
+                  <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">tickets réservés</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-black text-brand-green mb-1">99%</div>
+                  <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">satisfaction client</div>
+                </div>
               </div>
             </div>
           </div>
