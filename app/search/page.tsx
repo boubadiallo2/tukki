@@ -276,9 +276,9 @@ function SearchPageContent() {
             )}
             <button
               onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                router.push('/');
               }}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold px-4 py-2.5 rounded-xl transition"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer"
             >
               Modifier la recherche
             </button>
@@ -473,19 +473,21 @@ function SearchPageContent() {
                     </div>
 
                     <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                      {(selectedOperators.length > 0 || selectedTimeRange.length > 0) && (
+                        <button
+                          onClick={() => {
+                            setSelectedOperators([]);
+                            setSelectedTimeRange([]);
+                          }}
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-800 px-6 py-3.5 rounded-xl text-sm font-bold border border-gray-200 transition group/btn"
+                        >
+                          <Filter className="w-4 h-4 text-gray-500 group-hover/btn:text-gray-700" />
+                          Réinitialiser les filtres
+                        </button>
+                      )}
                       <button
                         onClick={() => {
-                          setSelectedOperators([]);
-                          setSelectedTimeRange([]);
-                        }}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-800 px-6 py-3.5 rounded-xl text-sm font-bold border border-gray-200 transition group/btn"
-                      >
-                        <Filter className="w-4 h-4 text-gray-500 group-hover/btn:text-gray-700" />
-                        Réinitialiser les filtres
-                      </button>
-                      <button
-                        onClick={() => {
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          router.push('/');
                         }}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-green text-white hover:bg-brand-green-dark px-8 py-3.5 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5"
                       >
