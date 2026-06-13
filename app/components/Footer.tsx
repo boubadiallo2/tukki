@@ -64,7 +64,7 @@ export default function Footer() {
 
       {/* Main Footer Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {/* Brand Info */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
@@ -99,25 +99,6 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/search?from=Thi%C3%A8s&to=Dakar&date=2026-06-15" className="hover:text-white transition">Thiès ➔ Dakar</Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="text-sm font-semibold uppercase text-white tracking-wider mb-4">Entreprise</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="#" className="hover:text-white transition">À propos</Link>
-              </li>
-              <li>
-                <Link href="#" className="hover:text-white transition">Carrières</Link>
-              </li>
-              <li>
-                <Link href="#" className="hover:text-white transition">Devenir Partenaire</Link>
-              </li>
-              <li>
-                <Link href="#" className="hover:text-white transition">Espace Presse</Link>
               </li>
             </ul>
           </div>
