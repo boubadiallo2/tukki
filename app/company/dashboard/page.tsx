@@ -45,7 +45,8 @@ export default function DashboardPage() {
     revenue: 0,
     tickets: 0,
     passengers: 0,
-    occupancyRate: 0
+    occupancyRate: 0,
+    weeklySales: [] as { date: string, amount: number, label: string }[]
   });
   
   const [departures, setDepartures] = useState<any[]>([]);
@@ -98,10 +99,27 @@ export default function DashboardPage() {
       let totalTickets = 0;
       let uniqueUsers = new Set();
       
+      let weeklyData = Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        const dateStr = d.toISOString().split('T')[0];
+        const label = d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '');
+        return { date: dateStr, amount: 0, label };
+      });
+      
       allTrips.forEach(trip => {
         if (trip.bookings) {
           trip.bookings.forEach((b: any) => {
             const bDate = b.travel_date || trip.trip_date;
+            
+            // Populate weekly sales (ignores filterDate so the graph always shows the full week)
+            if (bDate) {
+              const dayIndex = weeklyData.findIndex(w => w.date === bDate);
+              if (dayIndex !== -1 && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')) {
+                weeklyData[dayIndex].amount += (b.total_price || trip.price || 0);
+              }
+            }
+
             if (filterDate && bDate !== filterDate) return;
 
             if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
@@ -117,7 +135,8 @@ export default function DashboardPage() {
         revenue: totalRevenue,
         tickets: totalTickets,
         passengers: uniqueUsers.size,
-        occupancyRate: 0
+        occupancyRate: 0,
+        weeklySales: weeklyData
       });
 
       const upcoming = allTrips
@@ -267,10 +286,26 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="h-64 flex items-end justify-between gap-2">
-              <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400 border border-dashed border-gray-200 rounded-xl">
-                Graphique en construction (données réelles)
-              </div>
+            <div className="h-64 flex items-end justify-between gap-2 pt-8">
+              {stats.weeklySales?.map((day, i) => {
+                const maxAmount = Math.max(...stats.weeklySales.map(d => d.amount), 1);
+                const heightPercentage = (day.amount / maxAmount) * 100;
+                
+                return (
+                  <div key={i} className="flex flex-col items-center justify-end w-full h-full group">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 bg-gray-900 text-white text-[10px] py-1 px-2 rounded font-bold whitespace-nowrap pointer-events-none z-10">
+                      {day.amount.toLocaleString()} FCFA
+                    </div>
+                    <div 
+                      className="w-full max-w-[40px] bg-brand-green/20 group-hover:bg-brand-green rounded-t-lg transition-all duration-300 relative overflow-hidden"
+                      style={{ height: `${Math.max(heightPercentage, 4)}%` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand-green/40 to-transparent"></div>
+                    </div>
+                    <span className="text-xs font-bold text-gray-400 mt-3 uppercase">{day.label}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
