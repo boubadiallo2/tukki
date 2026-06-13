@@ -83,14 +83,14 @@ export default function SellTicketPage() {
 
       const { data: bookings } = await supabase
         .from('bookings')
-        .select('selected_seats, status, payment_status')
+        .select('selected_seats, status')
         .eq('trip_id', selectedTripId)
         .eq('travel_date', selectedDate);
 
       let occupied: string[] = [];
       if (bookings) {
         bookings.forEach(b => {
-          if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
+          if (b.status === 'CONFIRMED') {
             occupied = [...occupied, ...(b.selected_seats || [])];
           }
         });
@@ -116,7 +116,7 @@ export default function SellTicketPage() {
             const newBooking = payload.new;
             if (
               newBooking.travel_date === selectedDate && 
-              (newBooking.status === 'CONFIRMED' || newBooking.payment_status === 'PAID') &&
+              newBooking.status === 'CONFIRMED' &&
               newBooking.selected_seats
             ) {
               setOccupiedSeats(prev => {
@@ -208,7 +208,6 @@ export default function SellTicketPage() {
         booking_number: randomId,
         travel_date: selectedDate,
         status: 'CONFIRMED',
-        payment_status: 'PAID',
         payment_method: paymentMethod
       });
 
