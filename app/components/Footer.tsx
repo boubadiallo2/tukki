@@ -62,6 +62,57 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* Compteur de confiance */}
+      <div className="bg-brand-green/5 border-b border-gray-800 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div className="text-3xl font-black text-brand-green mb-1">+10</div>
+              <div className="text-xs text-gray-400 uppercase font-semibold tracking-wider">compagnies partenaires</div>
+            </div>
+            <div>
+              <div className="text-3xl font-black text-brand-green mb-1">+50</div>
+              <div className="text-xs text-gray-400 uppercase font-semibold tracking-wider">destinations</div>
+            </div>
+            <div>
+              <div className="text-3xl font-black text-brand-green mb-1">+5 000</div>
+              <div className="text-xs text-gray-400 uppercase font-semibold tracking-wider">tickets réservés</div>
+            </div>
+            <div>
+              <div className="text-3xl font-black text-brand-green mb-1">99%</div>
+              <div className="text-xs text-gray-400 uppercase font-semibold tracking-wider">satisfaction client</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pourquoi TUKKI ? */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-b border-gray-800">
+        <h3 className="text-2xl font-black text-white mb-10 text-center">Pourquoi TUKKI ?</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-800 hover:border-brand-green/30 transition-colors">
+            <div className="w-12 h-12 bg-brand-green/20 rounded-xl flex items-center justify-center text-2xl mb-4">🔍</div>
+            <h4 className="text-base font-bold text-white mb-2">Comparez plusieurs compagnies</h4>
+            <p className="text-sm text-gray-400 leading-relaxed">Comparez les horaires, les prix et les disponibilités des compagnies de transport sur une seule plateforme.</p>
+          </div>
+          <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-800 hover:border-brand-green/30 transition-colors">
+            <div className="w-12 h-12 bg-brand-green/20 rounded-xl flex items-center justify-center text-2xl mb-4">🎫</div>
+            <h4 className="text-base font-bold text-white mb-2">Réservation instantanée</h4>
+            <p className="text-sm text-gray-400 leading-relaxed">Réservez votre ticket en quelques clics et recevez votre confirmation immédiatement.</p>
+          </div>
+          <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-800 hover:border-brand-green/30 transition-colors">
+            <div className="w-12 h-12 bg-brand-green/20 rounded-xl flex items-center justify-center text-2xl mb-4">📱</div>
+            <h4 className="text-base font-bold text-white mb-2">Paiement mobile sécurisé</h4>
+            <p className="text-sm text-gray-400 leading-relaxed">Payez facilement avec Wave, Orange Money ou Free Money sans vous déplacer.</p>
+          </div>
+          <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-800 hover:border-brand-green/30 transition-colors">
+            <div className="w-12 h-12 bg-brand-green/20 rounded-xl flex items-center justify-center text-2xl mb-4">🚍</div>
+            <h4 className="text-base font-bold text-white mb-2">Plus de destinations</h4>
+            <p className="text-sm text-gray-400 leading-relaxed">Accédez aux trajets vers Touba, Saint-Louis, Kaolack, Tambacounda, Kolda et bien d'autres villes.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Main Footer Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
