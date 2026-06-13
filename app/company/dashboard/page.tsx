@@ -38,6 +38,8 @@ function TicketIcon(props: any) {
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [allTrips, setAllTrips] = useState<any[]>([]);
+  const [filterDate, setFilterDate] = useState("");
   
   const [stats, setStats] = useState({
     revenue: 0,
@@ -81,42 +83,7 @@ export default function DashboardPage() {
           .eq('company_id', profile.company_id);
           
         if (trips && trips.length > 0) {
-           let totalRevenue = 0;
-           let totalTickets = 0;
-           let uniqueUsers = new Set();
-           
-           trips.forEach(trip => {
-             if (trip.bookings) {
-               trip.bookings.forEach((b: any) => {
-                 if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
-                   totalRevenue += b.total_price || trip.price || 0;
-                   totalTickets += b.selected_seats?.length || 1;
-                   if (b.passenger_email || b.passenger_phone) uniqueUsers.add(b.passenger_email || b.passenger_phone);
-                 }
-               });
-             }
-           });
-           
-           setStats({
-             revenue: totalRevenue,
-             tickets: totalTickets,
-             passengers: uniqueUsers.size,
-             occupancyRate: 0
-           });
-
-           // Upcoming departures (for daily trips, we can just show them or only today's departures)
-           // For simplicity, we just sort them by time if daily, or date if not.
-           const upcoming = trips
-             .filter(t => t.is_daily || new Date(t.trip_date) >= new Date(new Date().setHours(0,0,0,0)))
-             .sort((a,b) => {
-               if (a.is_daily && b.is_daily) return a.departure_time.localeCompare(b.departure_time);
-               if (a.is_daily) return -1;
-               if (b.is_daily) return 1;
-               return new Date(a.trip_date).getTime() - new Date(b.trip_date).getTime() || a.departure_time.localeCompare(b.departure_time);
-             })
-             .slice(0, 5);
-             
-           setDepartures(upcoming);
+           setAllTrips(trips);
         }
       }
       setLoading(false);
@@ -124,6 +91,48 @@ export default function DashboardPage() {
 
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (allTrips.length > 0) {
+      let totalRevenue = 0;
+      let totalTickets = 0;
+      let uniqueUsers = new Set();
+      
+      allTrips.forEach(trip => {
+        if (trip.bookings) {
+          trip.bookings.forEach((b: any) => {
+            const bDate = b.travel_date || trip.trip_date;
+            if (filterDate && bDate !== filterDate) return;
+
+            if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
+              totalRevenue += b.total_price || trip.price || 0;
+              totalTickets += b.selected_seats?.length || 1;
+              if (b.passenger_email || b.passenger_phone) uniqueUsers.add(b.passenger_email || b.passenger_phone);
+            }
+          });
+        }
+      });
+      
+      setStats({
+        revenue: totalRevenue,
+        tickets: totalTickets,
+        passengers: uniqueUsers.size,
+        occupancyRate: 0
+      });
+
+      const upcoming = allTrips
+        .filter(t => filterDate ? (t.is_daily || t.trip_date === filterDate) : (t.is_daily || new Date(t.trip_date) >= new Date(new Date().setHours(0,0,0,0))))
+        .sort((a,b) => {
+          if (a.is_daily && b.is_daily) return a.departure_time.localeCompare(b.departure_time);
+          if (a.is_daily) return -1;
+          if (b.is_daily) return 1;
+          return new Date(a.trip_date).getTime() - new Date(b.trip_date).getTime() || a.departure_time.localeCompare(b.departure_time);
+        })
+        .slice(0, 5);
+        
+      setDepartures(upcoming);
+    }
+  }, [allTrips, filterDate]);
 
   const STATS_UI = [
     {
@@ -209,12 +218,21 @@ export default function DashboardPage() {
             Voici le résumé de votre activité.
           </p>
         </div>
-        <button 
-          onClick={exportDashboardReport}
-          className="bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2 cursor-pointer"
-        >
-          <span>Exporter le rapport</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <input 
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold focus:outline-hidden focus:border-brand-green shadow-xs cursor-pointer transition-colors"
+            title="Filtrer par date"
+          />
+          <button 
+            onClick={exportDashboardReport}
+            className="flex-1 sm:flex-none justify-center bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2 cursor-pointer"
+          >
+            <span>Exporter le rapport</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
