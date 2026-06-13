@@ -78,10 +78,6 @@ export default function Footer() {
             <p className="text-sm text-gray-400 leading-relaxed">
               TUKKI est la plateforme de réservation de tickets de transport qui connecte les voyageurs aux meilleures compagnies du Sénégal. Comparez les horaires, choisissez votre trajet et réservez votre ticket en quelques clics, où que vous soyez.
             </p>
-            <div className="flex items-center space-x-2 text-xs text-gray-400">
-              <Globe className="w-4 h-4 text-brand-green" />
-              <span>Disponible en Français & Wolof</span>
-            </div>
           </div>
 
           {/* Popular Routes */}
