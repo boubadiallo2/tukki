@@ -60,7 +60,7 @@ export default function SellTicketPage() {
       setCompanyId(profile.company_id);
       const { data, error } = await supabase
         .from('trips')
-        .select('*')
+        .select('*, companies(*)')
         .eq('company_id', profile.company_id);
         
       if (data) setTrips(data);
