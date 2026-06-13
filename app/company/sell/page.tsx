@@ -289,33 +289,151 @@ export default function SellTicketPage() {
     return (
       <div className="space-y-6 max-w-2xl mx-auto mt-10">
         <div id="printable-ticket" className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10" />
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-8 flex items-start space-x-4 max-w-2xl mx-auto animate-fade-in no-print">
+            <div className="w-10 h-10 rounded-full bg-brand-green text-brand-yellow flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-6 h-6 fill-brand-green" />
+            </div>
+            <div className="space-y-1 text-left">
+              <h2 className="text-base font-black text-emerald-950">Vente Réussie !</h2>
+              <p className="text-sm text-emerald-800 leading-relaxed font-medium">
+                La réservation a été confirmée et payée au guichet.
+              </p>
+            </div>
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Vente Réussie !</h2>
-          <p className="text-gray-500 mb-8">La réservation a été confirmée et payée au guichet.</p>
           
-          <div className="bg-gray-50 rounded-xl p-6 mb-8 text-left space-y-4">
-            <div className="flex justify-between border-b border-gray-200 pb-4">
-              <span className="text-gray-500 font-bold">N° de Billet</span>
-              <span className="text-gray-900 font-black">{bookingRef}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-200 pb-4">
-              <span className="text-gray-500 font-bold">Passagers</span>
-              <span className="text-gray-900 font-black text-right max-w-[200px] truncate">{names.join(", ")}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-200 pb-4">
-              <span className="text-gray-500 font-bold">Sièges</span>
-              <span className="text-brand-green font-black">{selectedSeats.join(", ")}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-200 pb-4">
-              <span className="text-gray-500 font-bold">Méthode</span>
-              <span className="text-gray-900 font-black">{paymentMethod === 'CASH' ? 'Espèces' : paymentMethod === 'WAVE' ? 'Wave' : 'Orange Money'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 font-bold">Total Encaissé</span>
-              <span className="text-gray-900 font-black text-lg">{(selectedTrip?.price * passengersCount).toLocaleString()} FCFA</span>
-            </div>
+          <div id="printable-ticket" className="flex flex-col gap-16 max-w-2xl mx-auto mb-10">
+            {names.map((name, idx) => {
+              const seat = selectedSeats[idx] || selectedSeats[0] || "";
+              const ticketId = `${bookingRef}-A${idx + 1}`;
+              const pricePerTicket = selectedTrip?.price || 0;
+              
+              return (
+                <div key={idx} className="text-center w-full">
+                  <div className="bg-white border border-gray-100 rounded-[2rem] p-6 md:p-8 w-full max-w-md mx-auto shadow-sm text-left relative break-inside-avoid">
+                    {/* Logo */}
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="text-gray-800">
+                        <Bus className="w-8 h-8" />
+                      </div>
+                      <div className="leading-tight">
+                        <span className="text-xl font-black tracking-wider text-gray-900 block uppercase">
+                          {selectedTrip?.companies?.name || "TUKKI PARTNER"}
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Transport - Aller</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-dashed border-gray-200 my-6"></div>
+
+                    {/* Depart / Destination */}
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900 mb-1">Ville de départ:</p>
+                        <p className="text-[13px] text-gray-600">{selectedTrip?.departure_city}</p>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900 mb-1">Ville de destination:</p>
+                        <p className="text-[13px] text-gray-600">{selectedTrip?.arrival_city}</p>
+                      </div>
+                    </div>
+
+                    {/* Date / Time */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900 mb-1">Date du voyage:</p>
+                        <p className="text-[13px] text-gray-600">{new Date(selectedDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900 mb-1">Heure de départ:</p>
+                        <p className="text-[13px] text-gray-600">{selectedTrip?.departure_time?.substring(0, 5)}</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-dashed border-gray-200 my-6"></div>
+
+                    {/* Client */}
+                    <div className="mb-5">
+                      <p className="text-[13px] font-bold text-gray-900 mb-1">Client:</p>
+                      <p className="text-[13px] text-gray-600">{name}</p>
+                    </div>
+
+                    {/* Ticket / Price */}
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900 mb-1">Ticket:</p>
+                        <p className="text-[13px] text-gray-600">{ticketId.replace('SEN-', '')}{Math.floor(Math.random() * 100000)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-900 mb-1">Prix payé:</p>
+                        <p className="text-[13px] text-gray-600">{pricePerTicket.toLocaleString()} FCFA ({paymentMethod === 'CASH' ? 'Espèces' : paymentMethod === 'WAVE' ? 'Wave' : 'Orange Money'})</p>
+                      </div>
+                    </div>
+
+                    {/* Seat */}
+                    <div className="mb-6">
+                      <p className="text-[13px] font-bold text-gray-900 mb-2">Siège:</p>
+                      <div className="inline-flex items-center justify-center w-10 h-10 border border-gray-100 rounded-xl shadow-xs">
+                        <span className="text-sm font-medium text-gray-800">{seat}</span>
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex items-center text-gray-500 space-x-2">
+                      <AlertCircle className="w-4 h-4 text-gray-400 shrink-0" />
+                      <p className="text-[13px] italic text-gray-500">Embarquement 1h avant le départ</p>
+                    </div>
+
+                    <div className="border-t border-dashed border-gray-200 my-6"></div>
+
+                    {/* QR Code */}
+                    <div className="flex justify-center mt-4">
+                      <svg className="w-32 h-32" width="128" height="128" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+                        <rect width="100" height="100" fill="white" />
+                        <rect x="5" y="5" width="25" height="25" fill="#111827" />
+                        <rect x="10" y="10" width="15" height="15" fill="white" />
+                        <rect x="13" y="13" width="9" height="9" fill="#111827" />
+                        <rect x="70" y="5" width="25" height="25" fill="#111827" />
+                        <rect x="75" y="10" width="15" height="15" fill="white" />
+                        <rect x="78" y="13" width="9" height="9" fill="#111827" />
+                        <rect x="5" y="70" width="25" height="25" fill="#111827" />
+                        <rect x="10" y="75" width="15" height="15" fill="white" />
+                        <rect x="13" y="78" width="9" height="9" fill="#111827" />
+                        <rect x="35" y="5" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="45" y="5" width="10" height="5" fill="#1a1a1a" />
+                        <rect x="60" y="5" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="35" y="15" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="55" y="15" width="5" height="10" fill="#1a1a1a" />
+                        <rect x="35" y="25" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="45" y="25" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="5" y="35" width="10" height="5" fill="#1a1a1a" />
+                        <rect x="20" y="35" width="10" height="10" fill="#1a1a1a" />
+                        <rect x="35" y="35" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="45" y="35" width="20" height="5" fill="#1a1a1a" />
+                        <rect x="70" y="35" width="10" height="5" fill="#1a1a1a" />
+                        <rect x="85" y="35" width="10" height="10" fill="#1a1a1a" />
+                        <rect x="5" y="50" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="25" y="50" width="5" height="15" fill="#1a1a1a" />
+                        <rect x="35" y="45" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="55" y="45" width="10" height="10" fill="#1a1a1a" />
+                        <rect x="70" y="50" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="80" y="50" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="35" y="60" width="10" height="5" fill="#1a1a1a" />
+                        <rect x="50" y="60" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="60" y="60" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="80" y="60" width="5" height="10" fill="#1a1a1a" />
+                        <rect x="35" y="70" width="5" height="15" fill="#1a1a1a" />
+                        <rect x="45" y="75" width="20" height="5" fill="#1a1a1a" />
+                        <rect x="70" y="75" width="5" height="5" fill="#1a1a1a" />
+                        <rect x="80" y="75" width="15" height="10" fill="#1a1a1a" />
+                        <rect x="35" y="90" width="15" height="5" fill="#1a1a1a" />
+                        <rect x="55" y="85" width="5" height="10" fill="#1a1a1a" />
+                        <rect x="65" y="90" width="20" height="5" fill="#1a1a1a" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 no-print">
