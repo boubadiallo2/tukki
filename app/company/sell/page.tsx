@@ -99,6 +99,41 @@ export default function SellTicketPage() {
     };
 
     fetchTripDetails();
+
+    // Set up Realtime Subscription for Live Sync
+    if (selectedTripId && selectedDate) {
+      const channel = supabase
+        .channel('pos-sync')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'bookings',
+            filter: `trip_id=eq.${selectedTripId}`
+          },
+          (payload: any) => {
+            const newBooking = payload.new;
+            if (
+              newBooking.travel_date === selectedDate && 
+              (newBooking.status === 'CONFIRMED' || newBooking.payment_status === 'PAID') &&
+              newBooking.selected_seats
+            ) {
+              setOccupiedSeats(prev => {
+                const updated = [...prev, ...newBooking.selected_seats];
+                // Remove newly occupied seats from currently selected seats if there is a collision
+                setSelectedSeats(currSel => currSel.filter(s => !newBooking.selected_seats.includes(s)));
+                return updated;
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [selectedTripId, selectedDate, trips]);
 
   // Adjust names array when passengers count changes
