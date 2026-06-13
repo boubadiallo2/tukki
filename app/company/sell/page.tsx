@@ -13,7 +13,8 @@ import {
   AlertCircle,
   CreditCard,
   Banknote,
-  Smartphone
+  Smartphone,
+  Printer
 } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -136,6 +137,36 @@ export default function SellTicketPage() {
     }
   }, [selectedTripId, selectedDate, trips]);
 
+  // Custom print stylesheet
+  useEffect(() => {
+    if (!success) return;
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printable-ticket, #printable-ticket * {
+          visibility: visible;
+        }
+        #printable-ticket {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          padding: 20px;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, [success]);
+
   // Adjust names array when passengers count changes
   useEffect(() => {
     setNames(prev => {
@@ -242,6 +273,10 @@ export default function SellTicketPage() {
   const leftCols = [0, 1];
   const rightCols = [2, 3];
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -253,7 +288,7 @@ export default function SellTicketPage() {
   if (success) {
     return (
       <div className="space-y-6 max-w-2xl mx-auto mt-10">
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
+        <div id="printable-ticket" className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-center">
           <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10" />
           </div>
@@ -283,12 +318,21 @@ export default function SellTicketPage() {
             </div>
           </div>
           
-          <button 
-            onClick={resetForm}
-            className="w-full bg-brand-green text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-green-dark transition"
-          >
-            Vendre un autre billet
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 no-print">
+            <button 
+              onClick={handlePrint}
+              className="flex-1 bg-white border-2 border-brand-green text-brand-green px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition flex items-center justify-center space-x-2"
+            >
+              <Printer className="w-5 h-5" />
+              <span>Imprimer le Billet</span>
+            </button>
+            <button 
+              onClick={resetForm}
+              className="flex-1 bg-brand-green text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-green-dark transition"
+            >
+              Vendre un autre billet
+            </button>
+          </div>
         </div>
       </div>
     );
