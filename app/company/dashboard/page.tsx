@@ -152,24 +152,6 @@ export default function DashboardPage() {
       icon: TicketIcon,
       color: "text-brand-yellow",
       bgColor: "bg-amber-50"
-    },
-    {
-      title: "Passagers Uniques",
-      value: stats.passengers.toString(),
-      change: "0%",
-      isPositive: true,
-      icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50"
-    },
-    {
-      title: "Taux de Remplissage",
-      value: `${stats.occupancyRate}%`,
-      change: "0%",
-      isPositive: true,
-      icon: TrendingUp,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50"
     }
   ];
 
@@ -185,9 +167,7 @@ export default function DashboardPage() {
     const headers = ["Métrique", "Valeur"];
     const rows = [
       ["Revenu Total (FCFA)", stats.revenue],
-      ["Billets Vendus", stats.tickets],
-      ["Passagers Uniques", stats.passengers],
-      ["Taux de Remplissage (%)", stats.occupancyRate]
+      ["Billets Vendus", stats.tickets]
     ];
 
     const csvContent = "\uFEFF" + [
@@ -235,7 +215,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
         {STATS_UI.map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between mb-6">
