@@ -173,6 +173,65 @@ export default function BookingsPage() {
     }));
   });
 
+  const exportToCSV = () => {
+    if (expandedBookings.length === 0) {
+      setAlertContent({
+        type: 'error',
+        title: "Export impossible",
+        message: "Il n'y a aucune réservation à exporter avec les filtres actuels."
+      });
+      return;
+    }
+
+    const headers = [
+      "N° Billet",
+      "Client",
+      "Téléphone",
+      "Départ",
+      "Arrivée",
+      "Date",
+      "Heure",
+      "Sièges",
+      "Montant (FCFA)",
+      "Paiement",
+      "Statut"
+    ];
+
+    const rows = expandedBookings.map(b => {
+      const dateOfTravel = b.travel_date || b.trips?.trip_date;
+      const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR') : "Quotidien";
+      const statusStr = b.status === 'CANCELLED' ? "Annulé" : "Confirmé";
+      
+      return [
+        b.booking_number,
+        `"${b.virtual_name}"`,
+        b.passenger_phone,
+        `"${b.trips?.departure_city}"`,
+        `"${b.trips?.arrival_city}"`,
+        formattedDate,
+        formatTimeFR(b.trips?.departure_time),
+        `"${b.virtual_seat?.join(', ') || ''}"`,
+        b.virtual_price,
+        b.payment_method || 'Espèces',
+        statusStr
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [
+      headers.join(","),
+      ...rows.map(r => r.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `reservations_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -180,7 +239,10 @@ export default function BookingsPage() {
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Réservations Clients</h1>
           <p className="text-sm text-gray-500 font-medium mt-1">Gérez les billets, validez les paiements et consultez les historiques.</p>
         </div>
-        <button className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2 cursor-pointer">
+        <button 
+          onClick={exportToCSV}
+          className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2 cursor-pointer"
+        >
           <Download className="w-4 h-4" />
           <span>Exporter la liste</span>
         </button>
