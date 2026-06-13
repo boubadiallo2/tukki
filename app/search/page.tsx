@@ -448,23 +448,51 @@ function SearchPageContent() {
 
               {/* Trips List */}
               {filteredTrips.length === 0 ? (
-                <div className="bg-white rounded-3xl p-12 border border-gray-100 shadow-xs text-center space-y-4 max-w-lg mx-auto">
-                  <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
-                    <AlertCircle className="w-8 h-8" />
+                <div className="relative overflow-hidden bg-white rounded-3xl p-10 md:p-16 border border-gray-100 shadow-sm text-center max-w-2xl mx-auto group">
+                  {/* Decorative background elements */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-48 bg-gradient-to-b from-brand-green/5 to-transparent rounded-b-[100%] opacity-50 pointer-events-none"></div>
+                  <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-brand-yellow/10 rounded-full blur-3xl opacity-50 pointer-events-none group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="absolute -left-8 -top-8 w-32 h-32 bg-brand-green/5 rounded-full blur-2xl opacity-50 pointer-events-none group-hover:scale-150 transition-transform duration-700 delay-100"></div>
+                  
+                  <div className="relative z-10 space-y-6">
+                    <div className="relative w-24 h-24 mx-auto">
+                      <div className="absolute inset-0 bg-brand-green/10 rounded-full animate-ping opacity-20"></div>
+                      <div className="relative w-full h-full bg-white border border-gray-100 shadow-sm rounded-full flex items-center justify-center transform group-hover:-translate-y-2 transition duration-500">
+                        <Compass className="w-10 h-10 text-brand-green animate-[spin_10s_linear_infinite]" />
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-full border border-gray-100 shadow-xs flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-brand-yellow" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Oups, aucun trajet trouvé</h3>
+                      <p className="text-base text-gray-500 leading-relaxed max-w-md mx-auto font-medium">
+                        Il semble que nos bus fassent une pause sur ce trajet pour cette date. Essayez de modifier vos filtres ou de choisir une autre date de départ.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <button
+                        onClick={() => {
+                          setSelectedOperators([]);
+                          setSelectedTimeRange([]);
+                        }}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-800 px-6 py-3.5 rounded-xl text-sm font-bold border border-gray-200 transition group/btn"
+                      >
+                        <Filter className="w-4 h-4 text-gray-500 group-hover/btn:text-gray-700" />
+                        Réinitialiser les filtres
+                      </button>
+                      <button
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-green text-white hover:bg-brand-green-dark px-8 py-3.5 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5"
+                      >
+                        Changer la date
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">Aucun Trajet Trouvé</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    Nous n'avons trouvé aucun voyage correspondant à vos critères actuels. Essayez de réinitialiser vos filtres ou de changer de date.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSelectedOperators([]);
-                      setSelectedTimeRange([]);
-                    }}
-                    className="inline-flex bg-brand-green text-white hover:bg-brand-green-dark px-6 py-2.5 rounded-xl text-sm font-semibold transition"
-                  >
-                    Réinitialiser les filtres
-                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
