@@ -195,6 +195,7 @@ function BookingPageContent() {
           total_price: outboundPrice,
           booking_number: returnTrip ? `${randomId}-A` : randomId,
           travel_date: date,
+          status: 'CONFIRMED' // Mark as confirmed so it blocks the seat immediately
         });
 
         if (insertError) throw insertError;
@@ -210,6 +211,7 @@ function BookingPageContent() {
             total_price: returnPrice,
             booking_number: `${randomId}-R`,
             travel_date: returnDate,
+            status: 'CONFIRMED'
           });
 
           if (returnInsertError) throw returnInsertError;
