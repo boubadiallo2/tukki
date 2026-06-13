@@ -71,8 +71,30 @@ function SearchPageContent() {
           }
 
           if (data) {
+            const now = new Date();
+            const todayYear = now.getFullYear();
+            const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
+            const todayDay = String(now.getDate()).padStart(2, '0');
+            const localTodayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            // Filter out trips that have already departed today
+            const futureData = data.filter((t: any) => {
+              if (currentDate === localTodayStr) {
+                const [depHourStr, depMinStr] = t.departure_time.split(':');
+                const depHour = parseInt(depHourStr, 10);
+                const depMin = parseInt(depMinStr, 10);
+
+                if (depHour < currentHour || (depHour === currentHour && depMin <= currentMinute)) {
+                  return false;
+                }
+              }
+              return true;
+            });
+
             // Map Supabase data to the Trip interface used by the UI
-            const formattedTrips: Trip[] = data.map((t: any) => {
+            const formattedTrips: Trip[] = futureData.map((t: any) => {
               const relevantBookings = t.bookings?.filter((b:any) => 
                 b.travel_date === currentDate && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')
               ) || [];
