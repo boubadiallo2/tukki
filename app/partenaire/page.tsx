@@ -15,16 +15,16 @@ export default async function PartenairePage() {
   return (
     <>
       <Header />
-      <main className="flex-grow bg-gray-50 pt-20 pb-24">
+      <main className="flex-grow bg-gray-50 pt-8 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 mb-6 tracking-tight">Devenez Partenaire TUKKI</h1>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4 tracking-tight">Devenez Partenaire TUKKI</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto font-medium">Rejoignez la plateforme leader de réservation de bus au Sénégal et digitalisez votre entreprise de transport.</p>
           </div>
 
-          <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100 mb-12">
-            <h2 className="text-2xl font-black text-gray-900 mb-8 text-center">Pourquoi nous rejoindre ?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 mb-8">
+            <h2 className="text-xl font-black text-gray-900 mb-6 text-center">Pourquoi nous rejoindre ?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="text-center">
                 <div className="w-16 h-16 bg-brand-green/10 text-brand-green rounded-full flex items-center justify-center mx-auto mb-4">
                   <TrendingUp className="w-8 h-8" />
@@ -48,9 +48,9 @@ export default async function PartenairePage() {
               </div>
             </div>
 
-            <hr className="border-gray-100 mb-12" />
+            <hr className="border-gray-100 mb-8" />
 
-            <div className="bg-[#0F172A] rounded-2xl p-8 sm:p-10 text-white text-center shadow-lg relative overflow-hidden">
+            <div className="bg-[#0F172A] rounded-2xl p-6 sm:p-10 text-white text-center shadow-lg relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-yellow/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
               
