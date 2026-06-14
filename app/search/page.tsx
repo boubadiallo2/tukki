@@ -32,26 +32,17 @@ function SearchPageContent() {
   const to = searchParams.get("to") || "";
   const date = searchParams.get("date") || "";
   const passengers = searchParams.get("passengers") || "1";
-  const tripType = searchParams.get("tripType") || "oneway";
-  const returnDate = searchParams.get("returnDate") || "";
+  // Computed current search parameters based on phase
+  const currentFrom = from;
+  const currentTo = to;
+  const currentDate = date;
 
   // State
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<string[]>([]); // "morning", "afternoon", "evening"
-  const [sortBy, setSortBy] = useState<string>("cheapest"); // "cheapest", "earliest", "duration"
+  const [selectedTimeRange, setSelectedTimeRange] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>("cheapest");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  // Roundtrip specific state
-  const [phase, setPhase] = useState<"outbound" | "return">("outbound");
-  const [outboundTripId, setOutboundTripId] = useState<string | null>(null);
-  const [isReserving, setIsReserving] = useState(false);
-  const [reserveError, setReserveError] = useState("");
-
-  // Computed current search parameters based on phase
-  const currentFrom = phase === "outbound" ? from : to;
-  const currentTo = phase === "outbound" ? to : from;
-  const currentDate = phase === "outbound" ? date : returnDate;
 
   // Load trips when query changes
   useEffect(() => {
@@ -129,7 +120,7 @@ function SearchPageContent() {
     }
 
     fetchTrips();
-  }, [currentFrom, currentTo, currentDate, phase]);
+  }, [currentFrom, currentTo, currentDate]);
 
   // Handle operator filter toggle
   const handleOperatorToggle = (code: string) => {
@@ -199,43 +190,7 @@ function SearchPageContent() {
   ])).values());
 
   const handleReserve = async (tripId: string) => {
-    if (tripType === "roundtrip") {
-      if (phase === "outbound") {
-        setIsReserving(true);
-        setReserveError("");
-        const outboundTrip = trips.find((t) => t.id === tripId);
-        
-        try {
-          const { data, error } = await supabase
-            .from('trips')
-            .select('*, companies!inner(*)')
-            .eq('departure_city', to)
-            .eq('arrival_city', from)
-            .eq('companies.code', outboundTrip?.companyCode)
-            .or(`trip_date.eq.${returnDate},is_daily.eq.true`)
-            .order('departure_time', { ascending: true })
-            .limit(1);
-
-          if (error) throw error;
-
-          if (data && data.length > 0) {
-            const returnTrip = data[0];
-            router.push(`/booking?tripId=${tripId}&returnTripId=${returnTrip.id}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&returnDate=${returnDate}`);
-          } else {
-            setReserveError(`Aucun trajet retour trouvé pour la compagnie ${outboundTrip?.companyName} le ${new Date(returnDate).toLocaleDateString("fr-FR")}.`);
-          }
-        } catch (err) {
-          console.error("Error finding return trip", err);
-          setReserveError("Erreur lors de la recherche du trajet retour.");
-        } finally {
-          setIsReserving(false);
-        }
-      } else {
-        router.push(`/booking?tripId=${outboundTripId}&returnTripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&returnDate=${returnDate}`);
-      }
-    } else {
-      router.push(`/booking?tripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
-    }
+    router.push(`/booking?tripId=${tripId}&passengers=${passengers}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
   };
 
   // Render search summary
@@ -255,25 +210,9 @@ function SearchPageContent() {
             <h2 className="text-xl sm:text-2xl font-black">
               {currentFrom} <span className="text-brand-yellow font-normal">➔</span> {currentTo}
             </h2>
-            {tripType === "roundtrip" && (
-              <div className="inline-block mt-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
-                Aller-retour (Le retour est réservé automatiquement avec la même compagnie)
-              </div>
-            )}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2 self-start md:self-center">
-            {phase === "return" && (
-              <button
-                onClick={() => {
-                  setPhase("outbound");
-                  setOutboundTripId(null);
-                }}
-                className="bg-transparent hover:bg-white/10 text-white border border-white/40 text-xs font-bold px-4 py-2.5 rounded-xl transition"
-              >
-                Changer l'Aller
-              </button>
-            )}
             <button
               onClick={() => {
                 router.push('/');
@@ -421,31 +360,6 @@ function SearchPageContent() {
                 </div>
               </div>
 
-              {/* Reserve Error */}
-              {reserveError && (
-                <div className="relative overflow-hidden bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-red-100 animate-in slide-in-from-top-4 fade-in duration-300">
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 rounded-l-2xl"></div>
-                  <div className="absolute -right-6 -top-6 w-24 h-24 bg-red-50 rounded-full blur-2xl opacity-60 pointer-events-none"></div>
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0 border border-red-100">
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                    </div>
-                    <div className="flex-1 pt-0.5">
-                      <h3 className="text-sm font-black text-gray-900 mb-1">Trajet retour indisponible</h3>
-                      <p className="text-sm text-gray-600 font-medium leading-relaxed">
-                        {reserveError}
-                      </p>
-                    </div>
-                    <button 
-                      onClick={() => setReserveError("")}
-                      className="p-2 hover:bg-gray-50 rounded-full transition-colors self-start shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Trips List */}
               {filteredTrips.length === 0 ? (
                 <div className="relative overflow-hidden bg-white rounded-3xl p-10 md:p-16 border border-gray-100 shadow-sm text-center max-w-2xl mx-auto group">
@@ -578,8 +492,7 @@ function SearchPageContent() {
 
                           <button
                             onClick={() => handleReserve(trip.id)}
-                            disabled={isReserving}
-                            className={`bg-brand-green hover:bg-brand-green-dark text-white font-bold text-sm px-6 py-3 rounded-xl shadow-xs hover:shadow-md transition duration-200 flex items-center justify-center space-x-1.5 group cursor-pointer ${isReserving ? 'opacity-50 cursor-wait' : ''}`}
+                            className="bg-brand-green hover:bg-brand-green-dark text-white font-bold text-sm px-6 py-3 rounded-xl shadow-xs hover:shadow-md transition duration-200 flex items-center justify-center space-x-1.5 group cursor-pointer"
                           >
                             <span>Réserver</span>
                             <ChevronRight className="w-4 h-4 transition group-hover:translate-x-1" />

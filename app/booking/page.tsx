@@ -27,18 +27,17 @@ function BookingPageContent() {
 
   // Retrieve params
   const tripId = searchParams.get("tripId") || "";
-  const returnTripId = searchParams.get("returnTripId") || "";
+
+
+  // States
   const passengersCount = parseInt(searchParams.get("passengers") || "1", 10);
   const from = searchParams.get("from") || "";
   const to = searchParams.get("to") || "";
   const date = searchParams.get("date") || "";
-  const returnDate = searchParams.get("returnDate") || "";
 
   // States
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [returnTrip, setReturnTrip] = useState<Trip | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [selectedReturnSeats, setSelectedReturnSeats] = useState<string[]>([]);
   const [names, setNames] = useState<string[]>(Array(passengersCount).fill(""));
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -78,58 +77,24 @@ function BookingPageContent() {
           console.error("Failed to fetch trip details", err);
         }
       }
-
-      if (returnTripId && returnDate) {
-        try {
-          const { data, error } = await supabase
-            .from('trips')
-            .select('*, companies(*), bookings(*)')
-            .eq('id', returnTripId)
-            .single();
-
-          if (data && !error) {
-            setReturnTrip({
-              id: data.id,
-              companyName: data.companies.name,
-              companyCode: data.companies.code,
-              departureCity: data.departure_city,
-              arrivalCity: data.arrival_city,
-              departureTime: data.departure_time.substring(0, 5),
-              arrivalTime: data.arrival_time.substring(0, 5),
-              duration: data.duration,
-              price: data.price,
-              availableSeats: data.total_seats - (data.bookings?.filter((b:any) => b.travel_date === returnDate && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')).reduce((sum: number, b: any) => sum + (b.selected_seats?.length || 1), 0) || 0),
-              totalSeats: data.total_seats,
-              occupiedSeats: data.bookings?.filter((b:any) => b.travel_date === returnDate && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')).flatMap((b:any) => b.selected_seats || []) || [],
-              rating: parseFloat(data.companies.rating),
-              amenities: data.companies.amenities || []
-            });
-          }
-        } catch (err) {
-          console.error("Failed to fetch return trip details", err);
-        }
-      }
     }
     
     fetchTrip();
-  }, [tripId, returnTripId, from, to, date, returnDate]);
+  }, [tripId, from, to, date]);
 
   // Handle seat clicks
-  const handleSeatClick = (seatId: string, isOccupied: boolean, isReturn: boolean = false) => {
+  const handleSeatClick = (seatId: string, isOccupied: boolean) => {
     if (isOccupied) return;
 
-    const currentSeats = isReturn ? selectedReturnSeats : selectedSeats;
-    const setCurrentSeats = isReturn ? setSelectedReturnSeats : setSelectedSeats;
-
-    if (currentSeats.includes(seatId)) {
-      setCurrentSeats(currentSeats.filter((s) => s !== seatId));
+    if (selectedSeats.includes(seatId)) {
+      setSelectedSeats(selectedSeats.filter((s) => s !== seatId));
       setError("");
     } else {
-      if (currentSeats.length >= passengersCount) {
-        setError(`Vous ne pouvez sélectionner que ${passengersCount} place(s) pour le trajet ${isReturn ? 'retour' : 'aller'}.`);
+      if (selectedSeats.length >= passengersCount) {
+        setError(`Vous ne pouvez sélectionner que ${passengersCount} place(s) pour le trajet aller.`);
         return;
       }
-      setCurrentSeats([...currentSeats, seatId]);
+      setSelectedSeats([...selectedSeats, seatId]);
       setError("");
     }
   };
@@ -168,10 +133,6 @@ function BookingPageContent() {
       return;
     }
 
-    if (returnTrip && selectedReturnSeats.length < passengersCount) {
-      showError(`Veuillez choisir exactement ${passengersCount} place(s) pour le trajet RETOUR. Actuel : ${selectedReturnSeats.length}/${passengersCount}`);
-      return;
-    }
 
     setIsSubmitting(true);
     
@@ -181,9 +142,7 @@ function BookingPageContent() {
         const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
         const passengersName = names.map(n => n.trim()).join(", ");
         
-        const outboundPrice = trip!.price * passengersCount + 100 * passengersCount;
-        const returnPrice = returnTrip ? returnTrip.price * passengersCount + 100 * passengersCount : 0;
-        const finalPrice = outboundPrice + returnPrice;
+        const finalPrice = trip!.price * passengersCount + 100 * passengersCount;
 
         // Insert outbound booking
         const { error: insertError } = await supabase.from('bookings').insert({
@@ -192,30 +151,15 @@ function BookingPageContent() {
           passenger_phone: phone,
           passenger_email: email || null,
           selected_seats: selectedSeats,
-          total_price: outboundPrice,
-          booking_number: returnTrip ? `${randomId}-A` : randomId,
+          total_price: finalPrice,
+          booking_number: randomId,
           travel_date: date,
           status: 'CONFIRMED' // Mark as confirmed so it blocks the seat immediately
         });
 
         if (insertError) throw insertError;
 
-        // Insert return booking if applicable
-        if (returnTrip) {
-          const { error: returnInsertError } = await supabase.from('bookings').insert({
-            trip_id: returnTrip.id,
-            passenger_name: passengersName,
-            passenger_phone: phone,
-            passenger_email: email || null,
-            selected_seats: selectedReturnSeats,
-            total_price: returnPrice,
-            booking_number: `${randomId}-R`,
-            travel_date: returnDate,
-            status: 'CONFIRMED'
-          });
 
-          if (returnInsertError) throw returnInsertError;
-        }
 
         // Redirect to confirmation
         const query = new URLSearchParams({
@@ -234,14 +178,7 @@ function BookingPageContent() {
           price: finalPrice.toString()
         });
         
-        if (returnTrip) {
-          query.append("returnTripId", returnTrip.id);
-          query.append("returnDate", returnDate);
-          query.append("returnSeats", selectedReturnSeats.join(","));
-          query.append("returnDepartureTime", returnTrip.departureTime);
-          query.append("returnArrivalTime", returnTrip.arrivalTime);
-          query.append("returnOperator", returnTrip.companyName);
-        }
+
         
         router.push(`/confirmation?${query.toString()}`);
 
@@ -286,10 +223,8 @@ function BookingPageContent() {
     );
   }
 
-  const outboundBasePrice = trip.price * passengersCount;
-  const returnBasePrice = returnTrip ? returnTrip.price * passengersCount : 0;
-  const basePrice = outboundBasePrice + returnBasePrice;
-  const serviceFee = 100 * passengersCount * (returnTrip ? 2 : 1); // 100 FCFA fee per ticket per trip
+  const basePrice = trip.price * passengersCount;
+  const serviceFee = 100 * passengersCount; // 100 FCFA fee per ticket per trip
   const totalPrice = basePrice + serviceFee;
 
   return (
@@ -520,99 +455,7 @@ function BookingPageContent() {
               </div>
             </div>
 
-            {/* Interactive Seat Selection (Return) */}
-            {returnTrip && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-xs mt-6">
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6 gap-2">
-                  <div className="flex items-center space-x-2.5">
-                    <Armchair className="w-5 h-5 text-brand-green" />
-                    <h2 className="text-lg font-black text-gray-900 font-sans">Sélectionnez vos Sièges (Retour)</h2>
-                  </div>
-                  <div className="bg-brand-green/10 text-brand-green font-bold text-xs px-3 py-1 rounded-full">
-                    Veuillez choisir {passengersCount} place{passengersCount > 1 ? "s" : ""}
-                  </div>
-                </div>
 
-                {/* Bus Cabin Visual Layout */}
-                <div className="max-w-xs mx-auto border-4 border-gray-300 rounded-t-3xl rounded-b-xl bg-gray-50 p-4 relative shadow-inner">
-                  {/* Windshield & Steering Wheel */}
-                  <div className="flex justify-between items-center pb-4 mb-4 border-b-2 border-gray-200">
-                    <div className="text-[10px] text-gray-400 font-black tracking-wider uppercase">Avant du véhicule</div>
-                    <div className="w-8 h-8 rounded-full border-2 border-gray-400 border-dashed flex items-center justify-center text-gray-400" title="Volant">
-                      🛞
-                    </div>
-                  </div>
-
-                  {/* Seats grid */}
-                  <div className="space-y-3">
-                    {rows.map((rowNum) => (
-                      <div key={`ret-${rowNum}`} className="flex justify-between items-center">
-                        {/* Left Seats (A, B) */}
-                        <div className="flex space-x-2">
-                          {leftCols.map((colIndex) => {
-                            const seatId = ((rowNum - 1) * 4 + colIndex + 1).toString();
-                            const isOccupied = returnTrip.occupiedSeats.includes(seatId);
-                            const isSelected = selectedReturnSeats.includes(seatId);
-                            
-                            return (
-                              <button
-                                key={`ret-seat-${seatId}`}
-                                type="button"
-                                onClick={() => handleSeatClick(seatId, isOccupied, true)}
-                                className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold transition duration-150 ${
-                                  isOccupied
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : isSelected
-                                    ? "bg-brand-yellow text-gray-900 border border-brand-yellow shadow-md transform scale-105"
-                                    : "bg-white hover:bg-brand-green/5 text-gray-700 hover:text-brand-green border border-gray-200"
-                                }`}
-                                disabled={isOccupied}
-                                title={`Siège ${seatId} ${isOccupied ? "(Occupé)" : ""}`}
-                              >
-                                <Armchair className="w-4 h-4 shrink-0" />
-                                <span>{seatId}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Aisle */}
-                        <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest pointer-events-none">Allée</div>
-
-                        {/* Right Seats (C, D) */}
-                        <div className="flex space-x-2">
-                          {rightCols.map((colIndex) => {
-                            const seatId = ((rowNum - 1) * 4 + colIndex + 1).toString();
-                            const isOccupied = returnTrip.occupiedSeats.includes(seatId);
-                            const isSelected = selectedReturnSeats.includes(seatId);
-                            
-                            return (
-                              <button
-                                key={`ret-seat-${seatId}`}
-                                type="button"
-                                onClick={() => handleSeatClick(seatId, isOccupied, true)}
-                                className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold transition duration-150 ${
-                                  isOccupied
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : isSelected
-                                    ? "bg-brand-yellow text-gray-900 border border-brand-yellow shadow-md transform scale-105"
-                                    : "bg-white hover:bg-brand-green/5 text-gray-700 hover:text-brand-green border border-gray-200"
-                                }`}
-                                disabled={isOccupied}
-                                title={`Siège ${seatId} ${isOccupied ? "(Occupé)" : ""}`}
-                              >
-                                <Armchair className="w-4 h-4 shrink-0" />
-                                <span>{seatId}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Panel: Booking Summary (4 columns) */}
@@ -665,8 +508,7 @@ function BookingPageContent() {
                       {passengersCount} Place{passengersCount > 1 ? "s" : ""}
                     </p>
                     <p className="text-xs text-brand-green font-bold">
-                      Aller : {selectedSeats.length > 0 ? selectedSeats.join(", ") : "Aucune"}
-                      {returnTrip && <><br />Retour : {selectedReturnSeats.length > 0 ? selectedReturnSeats.join(", ") : "Aucune"}</>}
+                      {selectedSeats.length > 0 ? selectedSeats.join(", ") : "Aucune"}
                     </p>
                   </div>
                 </div>
@@ -674,7 +516,7 @@ function BookingPageContent() {
                 {/* Receipt breakdown */}
                 <div className="space-y-2 text-xs font-semibold text-gray-500 pt-2">
                   <div className="flex justify-between">
-                    <span>Prix des billets ({passengersCount}x {returnTrip ? 'Aller-retour' : 'Aller simple'})</span>
+                    <span>Prix des billets ({passengersCount}x Aller simple)</span>
                     <span className="text-gray-900 font-bold">{basePrice.toLocaleString()} FCFA</span>
                   </div>
                   <div className="flex justify-between">

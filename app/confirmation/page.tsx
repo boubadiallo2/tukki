@@ -41,12 +41,7 @@ function ConfirmationPageContent() {
   const operator = searchParams.get("operator") || "Tukki Express";
   const totalPrice = searchParams.get("price") || "6000";
 
-  const returnTripId = searchParams.get("returnTripId") || "";
-  const returnDate = searchParams.get("returnDate") || "";
-  const returnSeatsStr = searchParams.get("returnSeats") || "";
-  const returnDepartureTime = searchParams.get("returnDepartureTime") || "";
-  const returnArrivalTime = searchParams.get("returnArrivalTime") || "";
-  const returnOperator = searchParams.get("returnOperator") || "";
+
 
   const [copied, setCopied] = useState(false);
 
@@ -59,7 +54,6 @@ function ConfirmationPageContent() {
 
   const namesList = namesStr.split(",").map(n => n.trim());
   const outboundSeatsList = seatsStr.split(",").map(s => s.trim());
-  const returnSeatsList = returnSeatsStr.split(",").map(s => s.trim());
 
   const tickets: Array<{
     id: string;
@@ -70,7 +64,6 @@ function ConfirmationPageContent() {
     date: string;
     departureTime: string;
     operator: string;
-    type: "Aller" | "Retour";
   }> = [];
 
   namesList.forEach((name, idx) => {
@@ -82,23 +75,8 @@ function ConfirmationPageContent() {
       to,
       date,
       departureTime,
-      operator,
-      type: "Aller"
+      operator
     });
-
-    if (returnTripId) {
-      tickets.push({
-        id: `${bookingNumber}-R${idx + 1}`,
-        name,
-        seat: returnSeatsList[idx] || returnSeatsList[0] || "",
-        from: to,
-        to: from,
-        date: returnDate,
-        departureTime: returnDepartureTime,
-        operator: returnOperator,
-        type: "Retour"
-      });
-    }
   });
 
   const downloadPDF = async (passengerId: string, pName: string) => {
@@ -262,7 +240,7 @@ function ConfirmationPageContent() {
                     <span className="text-xl font-black tracking-wider text-gray-900 block uppercase">
                       {ticket.operator}
                     </span>
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Transport - {ticket.type}</span>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Transport</span>
                   </div>
                 </div>
 

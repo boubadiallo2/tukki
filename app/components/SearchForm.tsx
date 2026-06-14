@@ -67,9 +67,6 @@ export default function SearchForm({
     city.toLowerCase().includes(to.toLowerCase()) && city.toLowerCase() !== from.toLowerCase()
   );
 
-  const [tripType, setTripType] = useState<"oneway" | "roundtrip">("oneway");
-  const [returnDate, setReturnDate] = useState("");
-
   // Min date selector (today)
   const getTodayDateString = () => {
     const today = new Date();
@@ -114,23 +111,8 @@ export default function SearchForm({
       return;
     }
 
-    if (tripType === "roundtrip") {
-      if (!returnDate) {
-        setError("Veuillez choisir une date de retour pour l'aller-retour.");
-        return;
-      }
-      const selectedReturn = new Date(returnDate);
-      if (selectedReturn < selectedDate) {
-        setError("La date de retour ne peut pas être antérieure à la date de départ.");
-        return;
-      }
-    }
-
     // Navigate to search results page
-    let url = `/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&passengers=${passengers}&tripType=${tripType}`;
-    if (tripType === "roundtrip") {
-      url += `&returnDate=${returnDate}`;
-    }
+    let url = `/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&passengers=${passengers}`;
     router.push(url);
   };
 
@@ -144,34 +126,9 @@ export default function SearchForm({
           </div>
         )}
 
-        {/* Toggle Aller simple / Aller-retour */}
-        <div className="flex bg-gray-100 p-1 rounded-xl w-max mb-2">
-          <button
-            type="button"
-            onClick={() => {
-              setTripType("oneway");
-              setReturnDate("");
-              setError("");
-            }}
-            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${tripType === "oneway" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Aller simple
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTripType("roundtrip");
-              setError("");
-            }}
-            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${tripType === "roundtrip" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Aller-retour
-          </button>
-        </div>
-
         <div className={`grid grid-cols-1 ${compact ? "lg:grid-cols-12" : "lg:grid-cols-11"} gap-4 items-end`}>
           {/* Departure City */}
-          <div className={`${compact ? (tripType === "roundtrip" ? "lg:col-span-2" : "lg:col-span-3") : (tripType === "roundtrip" ? "lg:col-span-2" : "lg:col-span-3")} relative`} ref={fromRef}>
+          <div className={`${compact ? "lg:col-span-3" : "lg:col-span-3"} relative`} ref={fromRef}>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Départ</label>
             <div className="relative group">
               <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-brand-green transition" />
@@ -221,7 +178,7 @@ export default function SearchForm({
           </div>
 
           {/* Arrival City */}
-          <div className={`${compact ? (tripType === "roundtrip" ? "lg:col-span-2" : "lg:col-span-3") : (tripType === "roundtrip" ? "lg:col-span-2" : "lg:col-span-3")} relative`} ref={toRef}>
+          <div className={`${compact ? "lg:col-span-3" : "lg:col-span-3"} relative`} ref={toRef}>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Destination</label>
             <div className="relative group">
               <MapPin className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-brand-green transition" />
@@ -276,25 +233,6 @@ export default function SearchForm({
             </div>
           </div>
 
-          {/* Return Date Picker */}
-          {tripType === "roundtrip" && (
-            <div className={`${compact ? "lg:col-span-2" : "lg:col-span-2"} min-w-0`}>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Retour</label>
-              <div className="relative group">
-                <Calendar className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-brand-green pointer-events-none" />
-                <input
-                  type="date"
-                  min={date || getTodayDateString()}
-                  value={returnDate}
-                  onChange={(e) => {
-                    setReturnDate(e.target.value);
-                    setError("");
-                  }}
-                  className="w-full min-w-0 appearance-none pl-12 pr-4 py-3.5 bg-gray-50 hover:bg-gray-100/70 focus:bg-white rounded-xl border border-gray-100 focus:border-brand-green focus:outline-hidden text-sm font-medium text-gray-800 transition"
-                />
-              </div>
-            </div>
-          )}
 
           {/* Passengers Selector */}
           <div className="lg:col-span-1">
