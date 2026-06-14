@@ -533,6 +533,7 @@ export default function BookingsPage() {
                 OK
               </button>
             </div>
+          </div>
         </div>
       )}
 
