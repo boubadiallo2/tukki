@@ -17,6 +17,7 @@ export default function BookingsPage() {
   
   // Modals state
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -367,7 +368,14 @@ export default function BookingsPage() {
                   </td>
                   <td className="p-4 pr-6 text-right relative actions-dropdown">
                     <div className="flex items-center justify-end space-x-2">
-                      <button className="p-2 text-gray-400 hover:text-brand-green hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" title="Voir les détails">
+                      <button 
+                        onClick={() => {
+                          setSelectedBooking(booking);
+                          setIsDetailsModalOpen(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-brand-green hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" 
+                        title="Voir les détails"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button 
@@ -523,6 +531,59 @@ export default function BookingsPage() {
                 className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors"
               >
                 OK
+              </button>
+            </div>
+        </div>
+      )}
+
+      {/* Modal Détails */}
+      {isDetailsModalOpen && selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-black text-gray-900">Détails de la réservation</h3>
+              <button onClick={() => setIsDetailsModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">N° Billet</p>
+                  <p className="font-black text-gray-900">{selectedBooking.booking_number}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">Client</p>
+                  <p className="font-black text-gray-900">{selectedBooking.virtual_name}</p>
+                  <p className="text-sm text-gray-500">{selectedBooking.passenger_phone}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">Trajet</p>
+                  <p className="font-bold text-gray-900">{selectedBooking.trips?.departure_city} ➔ {selectedBooking.trips?.arrival_city}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">Départ</p>
+                  <p className="font-bold text-gray-900">
+                    {selectedBooking.travel_date ? new Date(selectedBooking.travel_date).toLocaleDateString('fr-FR') : (selectedBooking.trips?.trip_date ? new Date(selectedBooking.trips.trip_date).toLocaleDateString('fr-FR') : "Quotidien")} à {formatTimeFR(selectedBooking.trips?.departure_time)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">Siège(s)</p>
+                  <p className="font-bold text-gray-900">{selectedBooking.virtual_seat?.join(', ') || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase">Prix payé</p>
+                  <p className="font-black text-brand-green">{selectedBooking.virtual_price?.toLocaleString()} FCFA</p>
+                  <p className="text-xs text-gray-500">via {selectedBooking.payment_method || 'Espèces'}</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => setIsDetailsModalOpen(false)}
+                className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Fermer
               </button>
             </div>
           </div>
