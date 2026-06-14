@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: "TUKKI",
   },
   icons: {
-    icon: "/icon-192x192.png",
+    icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
   },
 };
