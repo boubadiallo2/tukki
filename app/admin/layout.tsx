@@ -103,17 +103,15 @@ export default function AdminLayout({
                   </Link>
                 );
               })}
-            </nav>
 
-            <div className="p-4 border-t border-slate-800 shrink-0">
               <button 
                 onClick={handleLogout}
-                className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
+                className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors mt-2"
               >
                 <LogOut className="w-5 h-5" />
                 <span>Déconnexion</span>
               </button>
-            </div>
+            </nav>
           </aside>
         </div>
       )}
@@ -146,17 +144,15 @@ export default function AdminLayout({
               </Link>
             );
           })}
-        </nav>
 
-        <div className="p-4 border-t border-slate-800 shrink-0">
           <button 
             onClick={handleLogout}
-            className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
+            className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-xl font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors mt-2"
           >
             <LogOut className="w-5 h-5" />
             <span>Déconnexion</span>
           </button>
-        </div>
+        </nav>
       </aside>
 
       {/* Main Content Area */}

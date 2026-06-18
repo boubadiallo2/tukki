@@ -39,6 +39,7 @@ function SearchPageContent() {
 
   // State
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [isLoading, setIsLoading] = useState(!!(currentFrom && currentTo && currentDate));
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
   const [selectedTimeRange, setSelectedTimeRange] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("cheapest");
@@ -48,6 +49,7 @@ function SearchPageContent() {
   useEffect(() => {
     async function fetchTrips() {
       if (currentFrom && currentTo && currentDate) {
+        setIsLoading(true);
         try {
           const { data, error } = await supabase
             .from('trips')
@@ -115,7 +117,11 @@ function SearchPageContent() {
           }
         } catch (err) {
           console.error("Failed to fetch trips:", err);
+        } finally {
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
     }
 
@@ -340,7 +346,9 @@ function SearchPageContent() {
               {/* Toolbar */}
               <div className="flex justify-between items-center bg-white border border-gray-100 rounded-2xl p-4 shadow-xs">
                 <span className="text-xs font-bold text-gray-500">
-                  Nous avons trouvé <span className="text-gray-900">{filteredTrips.length}</span> trajets correspondants
+                  {isLoading ? "Recherche en cours..." : (
+                    <>Nous avons trouvé <span className="text-gray-900">{filteredTrips.length}</span> trajets correspondants</>
+                  )}
                 </span>
                 
                 {/* Mobile Filter Button */}
@@ -355,13 +363,18 @@ function SearchPageContent() {
                 <div className="hidden lg:flex items-center space-x-2 text-xs font-semibold text-gray-400">
                   <span>Trajet le plus rapide :</span>
                   <span className="text-gray-800 font-bold">
-                    {trips.length > 0 ? trips.reduce((min, t) => t.duration < min.duration ? t : min, trips[0]).duration : "N/A"}
+                    {isLoading ? "..." : (trips.length > 0 ? trips.reduce((min, t) => t.duration < min.duration ? t : min, trips[0]).duration : "N/A")}
                   </span>
                 </div>
               </div>
 
               {/* Trips List */}
-              {filteredTrips.length === 0 ? (
+              {isLoading ? (
+                <div className="bg-white rounded-3xl p-10 md:p-16 border border-gray-100 shadow-sm flex flex-col items-center justify-center space-y-4 max-w-2xl mx-auto">
+                  <div className="w-12 h-12 border-4 border-brand-green border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm font-bold text-gray-500">Recherche des trajets disponibles...</p>
+                </div>
+              ) : filteredTrips.length === 0 ? (
                 <div className="relative overflow-hidden bg-white rounded-3xl p-10 md:p-16 border border-gray-100 shadow-sm text-center max-w-2xl mx-auto group">
                   {/* Decorative background elements */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-48 bg-gradient-to-b from-brand-green/5 to-transparent rounded-b-[100%] opacity-50 pointer-events-none"></div>
