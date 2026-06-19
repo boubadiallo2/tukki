@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Calendar, Users, ArrowRightLeft, Search, AlertCircle } from "lucide-react";
-import { CITIES } from "../lib/mockData";
+import { supabase } from "../lib/supabaseClient";
 
 interface SearchFormProps {
   initialFrom?: string;
@@ -31,8 +31,29 @@ export default function SearchForm({
   const [showToSuggestions, setShowToSuggestions] = useState(false);
   const [error, setError] = useState("");
 
+  const [availableFromCities, setAvailableFromCities] = useState<string[]>([]);
+  const [availableToCities, setAvailableToCities] = useState<string[]>([]);
+
   const fromRef = useRef<HTMLDivElement>(null);
   const toRef = useRef<HTMLDivElement>(null);
+
+  // Fetch available cities from Supabase
+  useEffect(() => {
+    async function fetchCities() {
+      const { data, error } = await supabase.from('trips').select('departure_city, arrival_city');
+      if (data && !error) {
+        const fromSet = new Set<string>();
+        const toSet = new Set<string>();
+        data.forEach((trip) => {
+          if (trip.departure_city) fromSet.add(trip.departure_city);
+          if (trip.arrival_city) toSet.add(trip.arrival_city);
+        });
+        setAvailableFromCities(Array.from(fromSet).sort());
+        setAvailableToCities(Array.from(toSet).sort());
+      }
+    }
+    fetchCities();
+  }, []);
 
   // Set default date to today if not provided
   useEffect(() => {
@@ -59,11 +80,11 @@ export default function SearchForm({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredFromCities = CITIES.filter(city =>
+  const filteredFromCities = availableFromCities.filter(city =>
     city.toLowerCase().includes(from.toLowerCase()) && city.toLowerCase() !== to.toLowerCase()
   );
 
-  const filteredToCities = CITIES.filter(city =>
+  const filteredToCities = availableToCities.filter(city =>
     city.toLowerCase().includes(to.toLowerCase()) && city.toLowerCase() !== from.toLowerCase()
   );
 
