@@ -178,7 +178,22 @@ function BookingPageContent() {
           price: finalPrice.toString()
         });
         
+        // Generate full confirmation URL for SMS
+        const confirmationUrl = `${window.location.origin}/confirmation?${query.toString()}`;
 
+        // Send SMS
+        try {
+          await fetch('/api/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: phone,
+              message: `✅ Réservation TUKKI confirmée (${randomId}) !\n\nVoici le lien de votre ticket : ${confirmationUrl}`
+            })
+          });
+        } catch (err) {
+          console.error("Erreur lors de l'envoi du SMS :", err);
+        }
         
         router.push(`/confirmation?${query.toString()}`);
 
