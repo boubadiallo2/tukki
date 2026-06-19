@@ -175,27 +175,36 @@ export default function TripsPage() {
           .eq('company_id', companyId)
           .eq('departure_city', newTo)
           .eq('arrival_city', newFrom)
-          .eq('is_daily', newIsDaily);
+          .eq('is_daily', newIsDaily)
+          .eq('departure_time', newDepTime)
+          .eq('arrival_time', newArrTime);
+
         if (!newIsDaily && newDate) {
           queryInverse = queryInverse.eq('trip_date', newDate);
         }
-        const { data: existingInverse } = await queryInverse;
-        if (!existingInverse || existingInverse.length === 0) {
-          tripsToInsert.push({
-            company_id: companyId,
-            departure_city: newTo,
-            arrival_city: newFrom,
-            trip_date: newIsDaily ? null : newDate,
-            is_daily: newIsDaily,
-            departure_time: newDepTime,
-            arrival_time: newArrTime,
-            duration: duration,
-            price: parseInt(newPrice, 10),
-            total_seats: totalSeatsNum,
-            available_seats: totalSeatsNum,
-            occupied_seats: []
-          });
+        
+        const { data: existingInverse, error: invErr } = await queryInverse;
+        
+        if (invErr) throw invErr;
+
+        if (existingInverse && existingInverse.length > 0) {
+          throw new Error("Ce trajet inverse existe déjà pour cette même plage horaire.");
         }
+
+        tripsToInsert.push({
+          company_id: companyId,
+          departure_city: newTo,
+          arrival_city: newFrom,
+          trip_date: newIsDaily ? null : newDate,
+          is_daily: newIsDaily,
+          departure_time: newDepTime,
+          arrival_time: newArrTime,
+          duration: duration,
+          price: parseInt(newPrice, 10),
+          total_seats: totalSeatsNum,
+          available_seats: totalSeatsNum,
+          occupied_seats: []
+        });
       }
 
       const { error } = await supabase.from('trips').insert(tripsToInsert);
@@ -239,6 +248,30 @@ export default function TripsPage() {
       const bookedCount = currentTrip?.bookings?.filter((b:any) => b.status === 'CONFIRMED').length || 0;
       const newAvailable = totalSeatsNum - bookedCount;
 
+      if (newCreateInverse && companyId) {
+        let queryInverse = supabase
+          .from('trips')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('departure_city', newTo)
+          .eq('arrival_city', newFrom)
+          .eq('is_daily', newIsDaily)
+          .eq('departure_time', newDepTime)
+          .eq('arrival_time', newArrTime);
+
+        if (!newIsDaily && newDate) {
+          queryInverse = queryInverse.eq('trip_date', newDate);
+        }
+        
+        const { data: existingInverse, error: invErr } = await queryInverse;
+        
+        if (invErr) throw invErr;
+        
+        if (existingInverse && existingInverse.length > 0) {
+          throw new Error("Ce trajet inverse existe déjà pour cette même plage horaire.");
+        }
+      }
+
       const { error } = await supabase.from('trips').update({
         departure_city: newFrom,
         arrival_city: newTo,
@@ -255,35 +288,21 @@ export default function TripsPage() {
       if (error) throw error;
 
       if (newCreateInverse && companyId) {
-        let queryInverse = supabase
-          .from('trips')
-          .select('id')
-          .eq('company_id', companyId)
-          .eq('departure_city', newTo)
-          .eq('arrival_city', newFrom)
-          .eq('is_daily', newIsDaily);
-        if (!newIsDaily && newDate) {
-          queryInverse = queryInverse.eq('trip_date', newDate);
-        }
-        const { data: existingInverse } = await queryInverse;
-        
-        if (!existingInverse || existingInverse.length === 0) {
-          const { error: inverseError } = await supabase.from('trips').insert({
-            company_id: companyId,
-            departure_city: newTo,
-            arrival_city: newFrom,
-            trip_date: newIsDaily ? null : newDate,
-            is_daily: newIsDaily,
-            departure_time: newDepTime,
-            arrival_time: newArrTime,
-            duration: duration,
-            price: parseInt(newPrice, 10),
-            total_seats: totalSeatsNum,
-            available_seats: totalSeatsNum,
-            occupied_seats: []
-          });
-          if (inverseError) throw inverseError;
-        }
+        const { error: inverseError } = await supabase.from('trips').insert({
+          company_id: companyId,
+          departure_city: newTo,
+          arrival_city: newFrom,
+          trip_date: newIsDaily ? null : newDate,
+          is_daily: newIsDaily,
+          departure_time: newDepTime,
+          arrival_time: newArrTime,
+          duration: duration,
+          price: parseInt(newPrice, 10),
+          total_seats: totalSeatsNum,
+          available_seats: totalSeatsNum,
+          occupied_seats: []
+        });
+        if (inverseError) throw inverseError;
       }
 
       setIsEditModalOpen(false);

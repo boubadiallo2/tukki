@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, MapPin, Calendar, Clock, CheckCircle, XCircle, MoreVertical, Eye, Download, Loader2, RotateCcw, AlertTriangle, Check, X } from "lucide-react";
+import { Search, MapPin, Calendar, Clock, CheckCircle, XCircle, MoreVertical, Eye, Download, Loader2, RotateCcw, AlertTriangle, Check, X, FileText, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function BookingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +22,7 @@ export default function BookingsPage() {
 
   // Actions menu state
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   
   // Modals state
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
@@ -63,10 +66,13 @@ export default function BookingsPage() {
       if (openMenuId && !(event.target as Element).closest('.actions-dropdown')) {
         setOpenMenuId(null);
       }
+      if (isExportMenuOpen && !(event.target as Element).closest('.export-dropdown')) {
+        setIsExportMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openMenuId]);
+  }, [openMenuId, isExportMenuOpen]);
 
   const formatTimeFR = (timeString: string) => {
     if (!timeString) return "";
@@ -239,6 +245,67 @@ export default function BookingsPage() {
     document.body.removeChild(link);
   };
 
+  const exportToPDF = () => {
+    if (expandedBookings.length === 0) {
+      setAlertContent({
+        type: 'error',
+        title: "Export impossible",
+        message: "Il n'y a aucune réservation à exporter avec les filtres actuels."
+      });
+      return;
+    }
+
+    const doc = new jsPDF('landscape');
+    
+    doc.setFontSize(18);
+    doc.text("Liste des Réservations", 14, 22);
+    
+    doc.setFontSize(11);
+    doc.text(`Date d'export : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+
+    const headers = [[
+      "N° Billet",
+      "Client",
+      "Téléphone",
+      "Départ",
+      "Arrivée",
+      "Date",
+      "Heure",
+      "Sièges",
+      "Montant (FCFA)",
+      "Statut"
+    ]];
+
+    const data = expandedBookings.map(b => {
+      const dateOfTravel = b.travel_date || b.trips?.trip_date;
+      const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR') : "Quotidien";
+      const statusStr = b.status === 'CANCELLED' ? "Annulé" : "Confirmé";
+      
+      return [
+        b.booking_number,
+        b.virtual_name,
+        b.passenger_phone,
+        b.trips?.departure_city,
+        b.trips?.arrival_city,
+        formattedDate,
+        formatTimeFR(b.trips?.departure_time),
+        b.virtual_seat?.join(', ') || '',
+        b.virtual_price?.toLocaleString(),
+        statusStr
+      ];
+    });
+
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 35,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [15, 118, 110] } // text-brand-green (Teal 700)
+    });
+
+    doc.save(`reservations_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -246,13 +313,44 @@ export default function BookingsPage() {
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Réservations Clients</h1>
           <p className="text-sm text-gray-500 font-medium mt-1">Gérez les billets, validez les paiements et consultez les historiques.</p>
         </div>
-        <button 
-          onClick={exportToCSV}
-          className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2 cursor-pointer"
-        >
-          <Download className="w-4 h-4" />
-          <span>Exporter la liste</span>
-        </button>
+        <div className="relative export-dropdown">
+          <button 
+            onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+            className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Exporter la liste</span>
+          </button>
+          
+          {isExportMenuOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <button
+                onClick={() => {
+                  exportToPDF();
+                  setIsExportMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center space-x-3 border-b border-gray-50"
+              >
+                <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span>Format PDF</span>
+              </button>
+              <button
+                onClick={() => {
+                  exportToCSV();
+                  setIsExportMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center space-x-3"
+              >
+                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <FileSpreadsheet className="w-4 h-4" />
+                </div>
+                <span>Format Excel</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row gap-4 items-center justify-between">
