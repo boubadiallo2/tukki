@@ -169,6 +169,21 @@ export default function TripsPage() {
       }];
 
       if (newCreateInverse) {
+        let queryInverse = supabase
+          .from('trips')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('departure_city', newTo)
+          .eq('arrival_city', newFrom)
+          .eq('is_daily', newIsDaily);
+        if (!newIsDaily && newDate) {
+          queryInverse = queryInverse.eq('trip_date', newDate);
+        }
+        const { data: existingInverse } = await queryInverse;
+        if (existingInverse && existingInverse.length > 0) {
+          throw new Error(`Le trajet inverse (${newTo} ➔ ${newFrom}) existe déjà.`);
+        }
+
         tripsToInsert.push({
           company_id: companyId,
           departure_city: newTo,
@@ -242,6 +257,21 @@ export default function TripsPage() {
       if (error) throw error;
 
       if (newCreateInverse && companyId) {
+        let queryInverse = supabase
+          .from('trips')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('departure_city', newTo)
+          .eq('arrival_city', newFrom)
+          .eq('is_daily', newIsDaily);
+        if (!newIsDaily && newDate) {
+          queryInverse = queryInverse.eq('trip_date', newDate);
+        }
+        const { data: existingInverse } = await queryInverse;
+        if (existingInverse && existingInverse.length > 0) {
+          throw new Error(`Le trajet inverse (${newTo} ➔ ${newFrom}) existe déjà.`);
+        }
+
         const { error: inverseError } = await supabase.from('trips').insert({
           company_id: companyId,
           departure_city: newTo,
