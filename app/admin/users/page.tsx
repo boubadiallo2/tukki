@@ -61,13 +61,19 @@ export default function AdminUsersPage() {
   const handleExportCSV = () => {
     const headers = ["Nom Complet", "Email", "Rôle", "Compagnie", "Date d'inscription"];
     
-    const rows = filteredProfiles.map(p => [
-      `"${p.full_name || p.companies?.owner_name || 'Sans nom'}"`,
-      p.email,
-      p.role === 'super_admin' ? 'Super Admin' : p.role === 'company' ? 'Partenaire' : 'Client',
-      `"${p.companies?.name || '-'}"`,
-      new Date(p.created_at).toLocaleDateString('fr-FR')
-    ]);
+    const rows = filteredProfiles.map(p => {
+      const displayName = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.full_name || p.companies?.owner_name || 'Sans nom';
+      const roleName = p.role === 'super_admin' ? 'Super Admin' : 
+                       p.role === 'company' ? 'Partenaire' : 
+                       p.role === 'company_agent' ? 'Agent' : 'Client';
+      return [
+        `"${displayName}"`,
+        p.email,
+        roleName,
+        `"${p.companies?.name || '-'}"`,
+        new Date(p.created_at).toLocaleDateString('fr-FR')
+      ];
+    });
 
     const csvContent = [
       headers.join(","),
@@ -96,6 +102,12 @@ export default function AdminUsersPage() {
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/30">
             <Building2 className="w-3 h-3 mr-1" /> Partenaire
+          </span>
+        );
+      case 'company_agent':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-black bg-emerald-50 text-brand-green border border-emerald-200">
+            <Users className="w-3 h-3 mr-1" /> Agent
           </span>
         );
       default:
@@ -180,6 +192,7 @@ export default function AdminUsersPage() {
             { id: "ALL", label: "Tous" },
             { id: "client", label: "Clients" },
             { id: "company", label: "Partenaires" },
+            { id: "company_agent", label: "Agents" },
             { id: "super_admin", label: "Super Admins" }
           ].map(role => (
             <button
@@ -243,7 +256,9 @@ export default function AdminUsersPage() {
                           <Users className="w-5 h-5 text-slate-400" />
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 text-sm">{profile.full_name || profile.companies?.owner_name || 'Sans nom'}</p>
+                          <p className="font-black text-slate-900 text-sm">
+                            {[profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.full_name || profile.companies?.owner_name || 'Sans nom'}
+                          </p>
                           <p className="text-xs font-medium text-slate-500">{profile.email}</p>
                         </div>
                       </div>
