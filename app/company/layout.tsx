@@ -28,6 +28,7 @@ export default function CompanyLayout({
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('');
+  const [allowedModules, setAllowedModules] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchUserCompany = async () => {
@@ -36,12 +37,13 @@ export default function CompanyLayout({
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('company_id, role')
+        .select('company_id, role, allowed_modules')
         .eq('id', session.user.id)
         .single();
         
       if (profile) {
         setUserRole(profile.role);
+        setAllowedModules(profile.allowed_modules || []);
       }
 
       if (profile?.company_id) {
@@ -72,7 +74,7 @@ export default function CompanyLayout({
   ];
 
   if (userRole === 'company_agent') {
-    navigation = navigation.filter(item => ['Vente au guichet', 'Réservations'].includes(item.name));
+    navigation = navigation.filter(item => allowedModules.includes(item.name));
   }
 
   return (

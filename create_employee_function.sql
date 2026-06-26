@@ -2,7 +2,14 @@
 -- This function allows a 'company' admin to set the role of a newly created user to 'company_agent'
 -- and assign them to the same company.
 
-CREATE OR REPLACE FUNCTION public.assign_company_agent_role(new_user_id UUID, target_company_id UUID)
+CREATE OR REPLACE FUNCTION public.assign_company_agent_role(
+  new_user_id UUID, 
+  target_company_id UUID,
+  agent_first_name TEXT,
+  agent_last_name TEXT,
+  agent_phone TEXT,
+  agent_modules TEXT[]
+)
 RETURNS BOOLEAN AS $$
 DECLARE
   caller_role TEXT;
@@ -24,7 +31,11 @@ BEGIN
   UPDATE public.profiles
   SET 
     role = 'company_agent',
-    company_id = target_company_id
+    company_id = target_company_id,
+    first_name = agent_first_name,
+    last_name = agent_last_name,
+    phone = agent_phone,
+    allowed_modules = agent_modules
   WHERE id = new_user_id;
 
   RETURN TRUE;
