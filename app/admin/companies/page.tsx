@@ -8,7 +8,7 @@ export default function AdminCompaniesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentTab, setCurrentTab] = useState<'PENDING' | 'APPROVED' | 'SUSPENDED'>('PENDING');
+  const [currentTab, setCurrentTab] = useState<'PENDING' | 'APPROVED' | 'SUSPENDED'>('APPROVED');
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -314,20 +314,20 @@ export default function AdminCompaniesPage() {
         {/* Tabs */}
         <div className="flex space-x-1 bg-gray-100/50 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
           <button
-            onClick={() => setCurrentTab('PENDING')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-              currentTab === 'PENDING' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            En attente
-          </button>
-          <button
             onClick={() => setCurrentTab('APPROVED')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
               currentTab === 'APPROVED' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Approuvées
+          </button>
+          <button
+            onClick={() => setCurrentTab('PENDING')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
+              currentTab === 'PENDING' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            En attente
           </button>
           <button
             onClick={() => setCurrentTab('SUSPENDED')}
