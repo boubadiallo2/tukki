@@ -40,6 +40,10 @@ export default function DashboardPage() {
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [allTrips, setAllTrips] = useState<any[]>([]);
   const [filterDate, setFilterDate] = useState("");
+
+  useEffect(() => {
+    setFilterDate(new Date().toISOString().split('T')[0]);
+  }, []);
   
   const [stats, setStats] = useState({
     revenue: 0,
@@ -139,12 +143,25 @@ export default function DashboardPage() {
         weeklySales: weeklyData
       });
 
+      const targetDate = filterDate ? new Date(filterDate) : new Date();
+      const targetDay = targetDate.getDay();
+
       const upcoming = allTrips
-        .filter(t => filterDate ? (t.is_daily || t.trip_date === filterDate) : (t.is_daily || new Date(t.trip_date) >= new Date(new Date().setHours(0,0,0,0))))
+        .filter(t => {
+          if (t.is_daily) return true;
+          if (t.operating_days && t.operating_days.length > 0) {
+            return t.operating_days.includes(targetDay);
+          }
+          if (filterDate) {
+            return t.trip_date === filterDate;
+          } else {
+            return new Date(t.trip_date) >= new Date(new Date().setHours(0,0,0,0));
+          }
+        })
         .sort((a,b) => {
-          if (a.is_daily && b.is_daily) return a.departure_time.localeCompare(b.departure_time);
-          if (a.is_daily) return -1;
-          if (b.is_daily) return 1;
+          if ((a.is_daily || (a.operating_days && a.operating_days.length > 0)) && (b.is_daily || (b.operating_days && b.operating_days.length > 0))) return a.departure_time.localeCompare(b.departure_time);
+          if (a.is_daily || (a.operating_days && a.operating_days.length > 0)) return -1;
+          if (b.is_daily || (b.operating_days && b.operating_days.length > 0)) return 1;
           return new Date(a.trip_date).getTime() - new Date(b.trip_date).getTime() || a.departure_time.localeCompare(b.departure_time);
         })
         .slice(0, 5);
@@ -341,8 +358,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase">
-                      {departure.is_daily ? 'Quotidien' : 'Prévu'}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${departure.is_daily ? 'bg-emerald-100 text-emerald-700' : departure.operating_days && departure.operating_days.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {departure.is_daily ? 'Quotidien' : departure.operating_days && departure.operating_days.length > 0 ? 'Récurrent' : 'Prévu'}
                     </span>
                     <p className="text-xs font-bold text-gray-500 mt-1">
                       {departure.bookings?.length || 0} résa.
