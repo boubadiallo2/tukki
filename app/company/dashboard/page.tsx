@@ -114,17 +114,17 @@ export default function DashboardPage() {
       allTrips.forEach(trip => {
         if (trip.bookings) {
           trip.bookings.forEach((b: any) => {
-            const bDate = b.travel_date || trip.trip_date;
+            const bookingDate = b.created_at ? b.created_at.split('T')[0] : (b.travel_date || trip.trip_date);
             
             // Populate weekly sales (ignores filterDate so the graph always shows the full week)
-            if (bDate) {
-              const dayIndex = weeklyData.findIndex(w => w.date === bDate);
+            if (bookingDate) {
+              const dayIndex = weeklyData.findIndex(w => w.date === bookingDate);
               if (dayIndex !== -1 && (b.status === 'CONFIRMED' || b.payment_status === 'PAID')) {
                 weeklyData[dayIndex].amount += (b.total_price || trip.price || 0);
               }
             }
 
-            if (filterDate && bDate !== filterDate) return;
+            if (filterDate && bookingDate !== filterDate) return;
 
             if (b.status === 'CONFIRMED' || b.payment_status === 'PAID') {
               totalRevenue += b.total_price || trip.price || 0;
