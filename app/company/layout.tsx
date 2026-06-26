@@ -13,7 +13,8 @@ import {
   X,
   Bus,
   Bell,
-  Store
+  Store,
+  Users
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
@@ -26,6 +27,7 @@ export default function CompanyLayout({
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     const fetchUserCompany = async () => {
@@ -34,10 +36,14 @@ export default function CompanyLayout({
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('company_id')
+        .select('company_id, role')
         .eq('id', session.user.id)
         .single();
         
+      if (profile) {
+        setUserRole(profile.role);
+      }
+
       if (profile?.company_id) {
         const { data: company } = await supabase
           .from('companies')
@@ -56,13 +62,18 @@ export default function CompanyLayout({
     router.push("/login");
   };
 
-  const navigation = [
+  let navigation = [
     { name: "Tableau de bord", href: "/company/dashboard", icon: LayoutDashboard },
     { name: "Trajets", href: "/company/trips", icon: Map },
     { name: "Réservations", href: "/company/bookings", icon: Ticket },
     { name: "Vente au guichet", href: "/company/sell", icon: Store },
+    { name: "Équipe", href: "/company/team", icon: Users },
     { name: "Paramètres", href: "/company/settings", icon: Settings },
   ];
+
+  if (userRole === 'company_agent') {
+    navigation = navigation.filter(item => ['Vente au guichet', 'Réservations'].includes(item.name));
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -180,7 +191,9 @@ export default function CompanyLayout({
             </div>
             <div className="hidden sm:block text-sm">
               <p className="font-bold text-gray-900">{companyInfo?.name || 'Chargement...'}</p>
-              <p className="text-xs text-gray-500">Administrateur</p>
+              <p className="text-xs text-gray-500">
+                {userRole === 'company_agent' ? 'Agent' : 'Administrateur'}
+              </p>
             </div>
           </div>
         </header>
