@@ -45,8 +45,9 @@ export default function LoginPage() {
         if (profile?.role === "super_admin") {
           router.push("/admin/dashboard");
         } else if (profile?.role === "company") {
-          // Future company dashboard
           router.push("/company/dashboard");
+        } else if (profile?.role === "company_agent") {
+          router.push("/company/sell");
         } else {
           router.push("/");
         }
