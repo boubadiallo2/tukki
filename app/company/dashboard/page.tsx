@@ -42,6 +42,7 @@ export default function DashboardPage() {
   const [filterDate, setFilterDate] = useState("");
   const [userRole, setUserRole] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  const [userInfo, setUserInfo] = useState<{firstName: string, lastName: string} | null>(null);
 
   useEffect(() => {
     setFilterDate(new Date().toISOString().split('T')[0]);
@@ -71,12 +72,17 @@ export default function DashboardPage() {
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('company_id, role')
+        .select('company_id, role, first_name, last_name')
         .eq('id', session.user.id)
         .single();
         
       setUserId(session.user.id);
-      if (profile) setUserRole(profile.role);
+      if (profile) {
+        setUserRole(profile.role);
+        if (profile.first_name && profile.last_name) {
+          setUserInfo({ firstName: profile.first_name, lastName: profile.last_name });
+        }
+      }
 
       if (profile?.company_id) {
         const { data: company } = await supabase
@@ -178,9 +184,11 @@ export default function DashboardPage() {
     }
   }, [allTrips, filterDate]);
 
+  const isTodayFilter = filterDate === new Date().toISOString().split('T')[0];
+
   const STATS_UI = [
     {
-      title: "Revenu Total",
+      title: isTodayFilter ? "Revenu du Jour" : "Revenu Total",
       value: `${stats.revenue.toLocaleString()} FCFA`,
       change: stats.revenue > 0 ? "+0%" : "0%",
       isPositive: true,
@@ -189,7 +197,7 @@ export default function DashboardPage() {
       bgColor: "bg-emerald-50"
     },
     {
-      title: "Billets Vendus",
+      title: isTodayFilter ? "Billets du Jour" : "Billets Vendus",
       value: stats.tickets.toString(),
       change: "0%",
       isPositive: true,
@@ -236,7 +244,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-            Bonjour, {companyInfo?.name || "Partenaire"} 👋
+            Bonjour, {userRole === 'company_agent' && userInfo ? `${userInfo.firstName} ${userInfo.lastName}` : companyInfo?.name || "Partenaire"} 👋
           </h1>
           <p className="text-sm text-gray-500 font-medium mt-1">
             {userRole === 'company_agent' ? "Voici le résumé de vos ventes personnelles." : "Voici le résumé de votre activité."}

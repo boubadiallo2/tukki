@@ -29,6 +29,7 @@ export default function CompanyLayout({
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('');
   const [allowedModules, setAllowedModules] = useState<string[]>([]);
+  const [userInfo, setUserInfo] = useState<{firstName: string, lastName: string} | null>(null);
 
   useEffect(() => {
     const fetchUserCompany = async () => {
@@ -37,13 +38,16 @@ export default function CompanyLayout({
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('company_id, role, allowed_modules')
+        .select('company_id, role, allowed_modules, first_name, last_name')
         .eq('id', session.user.id)
         .single();
         
       if (profile) {
         setUserRole(profile.role);
         setAllowedModules(profile.allowed_modules || []);
+        if (profile.first_name && profile.last_name) {
+          setUserInfo({ firstName: profile.first_name, lastName: profile.last_name });
+        }
       }
 
       if (profile?.company_id) {
@@ -189,10 +193,16 @@ export default function CompanyLayout({
               className="h-8 w-8 rounded-full flex items-center justify-center border font-bold text-sm text-white shadow-sm"
               style={{ backgroundColor: companyInfo?.color || '#059669', borderColor: companyInfo?.color || '#059669' }}
             >
-              {companyInfo?.name?.substring(0, 2).toUpperCase() || '..'}
+              {userRole === 'company_agent' && userInfo 
+                ? `${userInfo.firstName[0]}${userInfo.lastName[0]}`.toUpperCase() 
+                : companyInfo?.name?.substring(0, 2).toUpperCase() || '..'}
             </div>
             <div className="hidden sm:block text-sm">
-              <p className="font-bold text-gray-900">{companyInfo?.name || 'Chargement...'}</p>
+              <p className="font-bold text-gray-900">
+                {userRole === 'company_agent' && userInfo 
+                  ? `${userInfo.firstName} ${userInfo.lastName}` 
+                  : companyInfo?.name || 'Chargement...'}
+              </p>
               <p className="text-xs text-gray-500">
                 {userRole === 'company_agent' ? 'Agent' : 'Administrateur'}
               </p>
