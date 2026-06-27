@@ -19,8 +19,8 @@ export default function AdminSettingsPage() {
   const [successMsg, setSuccessMsg] = useState("");
 
   const [formData, setFormData] = useState({
-    commissionRate: 5,
-    fixedFee: 200,
+    commissionRate: 0,
+    fixedFee: 100,
     supportEmail: "support@tukki.sn",
     supportPhone: "+221 33 824 00 00",
     supportAddress: "Avenue Cheikh Anta Diop, Dakar",
@@ -66,7 +66,7 @@ export default function AdminSettingsPage() {
       const { error } = await supabase
         .from('platform_settings')
         .update({
-          commission_rate: formData.commissionRate,
+          commission_rate: 0, // No percentage commission anymore
           fixed_fee: formData.fixedFee,
           support_email: formData.supportEmail,
           support_phone: formData.supportPhone,
@@ -112,30 +112,16 @@ export default function AdminSettingsPage() {
               Frais & Commissions
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="max-w-md">
               <div>
-                <label className="block text-sm font-bold text-slate-900 mb-1">Commission par défaut (%)</label>
-                <p className="text-xs text-slate-500 mb-3">Pourcentage prélevé sur chaque billet vendu.</p>
-                <div className="relative">
-                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input 
-                    type="number" step="0.1" required 
-                    value={formData.commissionRate}
-                    onChange={(e) => setFormData({...formData, commissionRate: parseFloat(e.target.value)})}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:bg-white transition-all font-bold text-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-900 mb-1">Frais fixes par transaction (FCFA)</label>
-                <p className="text-xs text-slate-500 mb-3">Montant fixe ajouté ou prélevé pour couvrir les frais techniques.</p>
+                <label className="block text-sm font-bold text-slate-900 mb-1">Commission par ticket vendu (FCFA)</label>
+                <p className="text-xs text-slate-500 mb-3">Montant fixe prélevé comme commission sur chaque billet vendu.</p>
                 <div className="relative">
                   <Coins className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
                     type="number" required 
                     value={formData.fixedFee}
-                    onChange={(e) => setFormData({...formData, fixedFee: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({...formData, fixedFee: parseInt(e.target.value) || 0})}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:bg-white transition-all font-bold text-slate-900"
                   />
                 </div>
