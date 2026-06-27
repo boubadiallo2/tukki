@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, X, Loader2, AlertTriangle, Check, ShieldCheck, Mail, Phone } from "lucide-react";
+import { Users, Plus, X, Loader2, AlertTriangle, Check, ShieldCheck, Mail, Phone, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
 const AVAILABLE_MODULES = [
@@ -31,6 +31,8 @@ export default function CompanyTeamPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const fetchTeam = async () => {
     setLoading(true);
@@ -73,6 +75,7 @@ export default function CompanyTeamPage() {
     setNewPhone("");
     setNewModules([]);
     setErrorMsg("");
+    setEditingAgentId(null);
   };
 
   const toggleModule = (mod: string) => {
@@ -92,7 +95,7 @@ export default function CompanyTeamPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (!editingAgentId && newPassword.length < 6) {
       setErrorMsg("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
@@ -101,28 +104,33 @@ export default function CompanyTeamPage() {
     setErrorMsg("");
 
     try {
-      // 1. Create Auth User via API
-      const response = await fetch('/api/create-employee-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newEmail,
-          password: newPassword
-        })
-      });
+      let targetUserId = editingAgentId;
 
-      const authResult = await response.json();
-      
-      if (!response.ok) {
-        if (authResult.error && authResult.error.toLowerCase().includes("already registered")) {
-          throw new Error("Cette adresse email existe déjà. Veuillez utiliser un autre email.");
+      if (!editingAgentId) {
+        // 1. Create Auth User via API (only for new agents)
+        const response = await fetch('/api/create-employee-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: newEmail,
+            password: newPassword
+          })
+        });
+
+        const authResult = await response.json();
+        
+        if (!response.ok) {
+          if (authResult.error && authResult.error.toLowerCase().includes("already registered")) {
+            throw new Error("Cette adresse email existe déjà. Veuillez utiliser un autre email.");
+          }
+          throw new Error(authResult.error || "Erreur lors de la création du compte agent");
         }
-        throw new Error(authResult.error || "Erreur lors de la création du compte agent");
+        targetUserId = authResult.userId;
       }
 
-      // 2. Assign role and info via RPC function
+      // 2. Assign role and info via RPC function (works for creation AND update)
       const { error: rpcError } = await supabase.rpc('assign_company_agent_role', {
-        new_user_id: authResult.userId,
+        new_user_id: targetUserId,
         target_company_id: companyId,
         agent_first_name: newFirstName,
         agent_last_name: newLastName,
@@ -141,10 +149,14 @@ export default function CompanyTeamPage() {
       // Custom Success Modal
       setAlertContent({
         type: 'success',
-        title: "Agent ajouté avec succès ! 🎉",
+        title: editingAgentId ? "Agent modifié avec succès ! 🎉" : "Agent ajouté avec succès ! 🎉",
         message: (
           <div className="space-y-3 mt-4 text-left">
-            <p className="text-gray-600 text-sm">Le compte de votre agent a été créé avec succès. Il peut maintenant se connecter avec son email et le mot de passe que vous avez défini.</p>
+            <p className="text-gray-600 text-sm">
+              {editingAgentId 
+                ? "Les informations de l'agent ont été mises à jour avec succès." 
+                : "Le compte de votre agent a été créé avec succès. Il peut maintenant se connecter avec son email et le mot de passe que vous avez défini."}
+            </p>
           </div>
         )
       });
@@ -154,6 +166,56 @@ export default function CompanyTeamPage() {
       setErrorMsg(error.message || "Une erreur est survenue");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (agent: any) => {
+    setEditingAgentId(agent.id);
+    setNewFirstName(agent.first_name || "");
+    setNewLastName(agent.last_name || "");
+    setNewEmail(agent.email || "");
+    setNewPhone(agent.phone || "");
+    setNewModules(agent.allowed_modules || []);
+    setNewPassword(""); // Reset password field, won't be used for edit
+    setErrorMsg("");
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteAgent = async (agentId: string) => {
+    if (!companyId) return;
+    
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet agent ? Cette action révoquera son accès.")) {
+      return;
+    }
+
+    setIsDeleting(agentId);
+    try {
+      const { error } = await supabase.rpc('delete_company_agent', {
+        agent_id: agentId,
+        target_company_id: companyId
+      });
+
+      if (error) {
+        console.error("Erreur RPC delete:", error);
+        throw new Error("Impossible de supprimer l'agent: " + error.message);
+      }
+
+      setAlertContent({
+        type: 'success',
+        title: "Agent supprimé",
+        message: "L'accès de cet agent a été révoqué avec succès."
+      });
+      
+      fetchTeam();
+    } catch (error: any) {
+      console.error(error);
+      setAlertContent({
+        type: 'error',
+        title: "Erreur",
+        message: error.message || "Une erreur est survenue lors de la suppression."
+      });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -195,20 +257,21 @@ export default function CompanyTeamPage() {
                 <th className="p-4 pl-6">Employé</th>
                 <th className="p-4">Contact</th>
                 <th className="p-4">Modules Autorisés</th>
-                <th className="p-4 text-right pr-6">Date d'ajout</th>
+                <th className="p-4 text-right">Date d'ajout</th>
+                <th className="p-4 text-right pr-6">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500">
+                  <td colSpan={5} className="p-8 text-center text-gray-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-green" />
                     Chargement de l'équipe...
                   </td>
                 </tr>
               ) : agents.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500 font-medium">
+                  <td colSpan={5} className="p-8 text-center text-gray-500 font-medium">
                     Vous n'avez pas encore ajouté d'agent.
                   </td>
                 </tr>
@@ -254,12 +317,31 @@ export default function CompanyTeamPage() {
                       )}
                     </div>
                   </td>
-                  <td className="p-4 text-right pr-6 text-sm text-gray-500 font-medium">
+                  <td className="p-4 text-right text-sm text-gray-500 font-medium">
                     {new Date(agent.created_at).toLocaleDateString('fr-FR', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'
                     })}
+                  </td>
+                  <td className="p-4 text-right pr-6">
+                    <div className="flex justify-end items-center space-x-2">
+                      <button 
+                        onClick={() => handleEditClick(agent)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                        title="Modifier"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteAgent(agent.id)}
+                        disabled={isDeleting === agent.id}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50" 
+                        title="Supprimer"
+                      >
+                        {isDeleting === agent.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -273,7 +355,7 @@ export default function CompanyTeamPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-8">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
-              <h3 className="text-xl font-black text-gray-900">Nouvel Agent</h3>
+              <h3 className="text-xl font-black text-gray-900">{editingAgentId ? "Modifier l'Agent" : "Nouvel Agent"}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white rounded-full p-1 border border-gray-200 transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -313,7 +395,8 @@ export default function CompanyTeamPage() {
                 <input 
                   type="email" required 
                   value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
+                  disabled={!!editingAgentId}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="Ex: agent@compagnie.sn"
                 />
               </div>
@@ -328,15 +411,17 @@ export default function CompanyTeamPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Mot de passe</label>
-                <input 
-                  type="text" required minLength={6}
-                  value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
-                  placeholder="Créez un mot de passe (min. 6 caractères)"
-                />
-              </div>
+              {!editingAgentId && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-1">Mot de passe</label>
+                  <input 
+                    type="text" required minLength={6}
+                    value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 focus:bg-white transition-all"
+                    placeholder="Créez un mot de passe (min. 6 caractères)"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-3">Modules Autorisés</label>
@@ -376,7 +461,7 @@ export default function CompanyTeamPage() {
                   className="bg-brand-green text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-brand-green-dark transition-colors flex items-center space-x-2 disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Créer l'agent</span>
+                  <span>{editingAgentId ? "Enregistrer" : "Créer l'agent"}</span>
                 </button>
               </div>
             </form>
