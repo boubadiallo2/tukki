@@ -74,7 +74,7 @@ export default function CompanyLayout({
   ];
 
   if (userRole === 'company_agent') {
-    navigation = navigation.filter(item => allowedModules.includes(item.name));
+    navigation = navigation.filter(item => allowedModules.includes(item.name) || item.name === "Tableau de bord");
   }
 
   return (

@@ -22,6 +22,7 @@ export default function SellTicketPage() {
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string>("");
+  const [agentId, setAgentId] = useState<string>("");
   
   // Selection state
   const [selectedTripId, setSelectedTripId] = useState<string>("");
@@ -50,6 +51,8 @@ export default function SellTicketPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     
+    setAgentId(session.user.id);
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('company_id')
@@ -239,7 +242,8 @@ export default function SellTicketPage() {
         booking_number: randomId,
         travel_date: selectedDate,
         status: 'CONFIRMED',
-        payment_method: paymentMethod
+        payment_method: paymentMethod,
+        agent_id: agentId
       });
 
       if (error) throw error;

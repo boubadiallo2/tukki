@@ -40,6 +40,8 @@ export default function DashboardPage() {
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [allTrips, setAllTrips] = useState<any[]>([]);
   const [filterDate, setFilterDate] = useState("");
+  const [userRole, setUserRole] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     setFilterDate(new Date().toISOString().split('T')[0]);
@@ -69,10 +71,13 @@ export default function DashboardPage() {
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('company_id')
+        .select('company_id, role')
         .eq('id', session.user.id)
         .single();
         
+      setUserId(session.user.id);
+      if (profile) setUserRole(profile.role);
+
       if (profile?.company_id) {
         const { data: company } = await supabase
           .from('companies')
@@ -114,6 +119,9 @@ export default function DashboardPage() {
       allTrips.forEach(trip => {
         if (trip.bookings) {
           trip.bookings.forEach((b: any) => {
+            // Filter logic for agents
+            if (userRole === 'company_agent' && b.agent_id !== userId) return;
+
             const bookingDate = b.created_at ? b.created_at.split('T')[0] : (b.travel_date || trip.trip_date);
             
             // Populate weekly sales (ignores filterDate so the graph always shows the full week)
@@ -231,7 +239,7 @@ export default function DashboardPage() {
             Bonjour, {companyInfo?.name || "Partenaire"} 👋
           </h1>
           <p className="text-sm text-gray-500 font-medium mt-1">
-            Voici le résumé de votre activité.
+            {userRole === 'company_agent' ? "Voici le résumé de vos ventes personnelles." : "Voici le résumé de votre activité."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">

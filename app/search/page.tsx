@@ -51,12 +51,14 @@ function SearchPageContent() {
       if (currentFrom && currentTo && currentDate) {
         setIsLoading(true);
         try {
+          const dayOfWeek = new Date(currentDate).getDay();
+
           const { data, error } = await supabase
             .from('trips')
             .select('*, companies(*), bookings(*)')
             .eq('departure_city', currentFrom)
             .eq('arrival_city', currentTo)
-            .or(`trip_date.eq.${currentDate},is_daily.eq.true`);
+            .or(`trip_date.eq.${currentDate},is_daily.eq.true,operating_days.cs.{${dayOfWeek}}`);
 
           if (error) {
             console.error("Error fetching trips:", error);

@@ -28,7 +28,8 @@ export default function TripsPage() {
   const [newFrom, setNewFrom] = useState("Dakar");
   const [newTo, setNewTo] = useState("Thiès");
   const [newDate, setNewDate] = useState("");
-  const [newIsDaily, setNewIsDaily] = useState(false);
+  const [tripType, setTripType] = useState<'daily' | 'date' | 'weekdays'>('daily');
+  const [operatingDays, setOperatingDays] = useState<number[]>([]);
   const [newDepTime, setNewDepTime] = useState("");
   const [newArrTime, setNewArrTime] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -82,7 +83,8 @@ export default function TripsPage() {
     setNewFrom("Dakar");
     setNewTo("Thiès");
     setNewDate("");
-    setNewIsDaily(false);
+    setTripType("daily");
+    setOperatingDays([]);
     setNewDepTime("");
     setNewArrTime("");
     setNewPrice("");
@@ -100,7 +102,16 @@ export default function TripsPage() {
     setNewFrom(trip.departure_city);
     setNewTo(trip.arrival_city);
     setNewDate(trip.trip_date || "");
-    setNewIsDaily(trip.is_daily || false);
+    if (trip.is_daily) {
+      setTripType("daily");
+      setOperatingDays([]);
+    } else if (trip.operating_days && trip.operating_days.length > 0) {
+      setTripType("weekdays");
+      setOperatingDays(trip.operating_days);
+    } else {
+      setTripType("date");
+      setOperatingDays([]);
+    }
     setNewDepTime(trip.departure_time.substring(0, 5));
     setNewArrTime(trip.arrival_time.substring(0, 5));
     setNewPrice(trip.price.toString());
@@ -146,9 +157,17 @@ export default function TripsPage() {
         throw new Error("La ville de départ et d'arrivée ne peuvent pas être identiques.");
       }
 
-      if (!newIsDaily && !newDate) {
-        throw new Error("Veuillez sélectionner une date, ou cocher 'Tous les jours'.");
+      if (tripType === 'date' && !newDate) {
+        throw new Error("Veuillez sélectionner une date.");
       }
+      
+      if (tripType === 'weekdays' && operatingDays.length === 0) {
+        throw new Error("Veuillez sélectionner au moins un jour de la semaine.");
+      }
+
+      const isDailyVal = tripType === 'daily';
+      const tripDateVal = tripType === 'date' ? newDate : null;
+      const operatingDaysVal = tripType === 'weekdays' ? operatingDays : null;
 
       const duration = computeDuration(newDepTime, newArrTime);
       const totalSeatsNum = parseInt(newTotalSeats, 10);
@@ -157,8 +176,9 @@ export default function TripsPage() {
         company_id: companyId,
         departure_city: newFrom,
         arrival_city: newTo,
-        trip_date: newIsDaily ? null : newDate,
-        is_daily: newIsDaily,
+        trip_date: tripDateVal,
+        is_daily: isDailyVal,
+        operating_days: operatingDaysVal,
         departure_time: newDepTime,
         arrival_time: newArrTime,
         duration: duration,
@@ -175,12 +195,18 @@ export default function TripsPage() {
           .eq('company_id', companyId)
           .eq('departure_city', newTo)
           .eq('arrival_city', newFrom)
-          .eq('is_daily', newIsDaily)
+          .eq('is_daily', isDailyVal)
           .eq('departure_time', newDepTime)
           .eq('arrival_time', newArrTime);
 
-        if (!newIsDaily && newDate) {
-          queryInverse = queryInverse.eq('trip_date', newDate);
+        if (tripType === 'date' && tripDateVal) {
+          queryInverse = queryInverse.eq('trip_date', tripDateVal);
+        }
+        
+        if (tripType === 'weekdays' && operatingDaysVal) {
+          queryInverse = queryInverse.eq('operating_days', operatingDaysVal);
+        } else {
+          queryInverse = queryInverse.is('operating_days', null);
         }
         
         const { data: existingInverse, error: invErr } = await queryInverse;
@@ -195,8 +221,9 @@ export default function TripsPage() {
           company_id: companyId,
           departure_city: newTo,
           arrival_city: newFrom,
-          trip_date: newIsDaily ? null : newDate,
-          is_daily: newIsDaily,
+          trip_date: tripDateVal,
+          is_daily: isDailyVal,
+          operating_days: operatingDaysVal,
           departure_time: newDepTime,
           arrival_time: newArrTime,
           duration: duration,
@@ -237,9 +264,17 @@ export default function TripsPage() {
         throw new Error("La ville de départ et d'arrivée ne peuvent pas être identiques.");
       }
 
-      if (!newIsDaily && !newDate) {
-        throw new Error("Veuillez sélectionner une date, ou cocher 'Tous les jours'.");
+      if (tripType === 'date' && !newDate) {
+        throw new Error("Veuillez sélectionner une date.");
       }
+      
+      if (tripType === 'weekdays' && operatingDays.length === 0) {
+        throw new Error("Veuillez sélectionner au moins un jour de la semaine.");
+      }
+
+      const isDailyVal = tripType === 'daily';
+      const tripDateVal = tripType === 'date' ? newDate : null;
+      const operatingDaysVal = tripType === 'weekdays' ? operatingDays : null;
 
       const duration = computeDuration(newDepTime, newArrTime);
       const totalSeatsNum = parseInt(newTotalSeats, 10);
@@ -255,12 +290,18 @@ export default function TripsPage() {
           .eq('company_id', companyId)
           .eq('departure_city', newTo)
           .eq('arrival_city', newFrom)
-          .eq('is_daily', newIsDaily)
+          .eq('is_daily', isDailyVal)
           .eq('departure_time', newDepTime)
           .eq('arrival_time', newArrTime);
 
-        if (!newIsDaily && newDate) {
-          queryInverse = queryInverse.eq('trip_date', newDate);
+        if (tripType === 'date' && tripDateVal) {
+          queryInverse = queryInverse.eq('trip_date', tripDateVal);
+        }
+        
+        if (tripType === 'weekdays' && operatingDaysVal) {
+          queryInverse = queryInverse.eq('operating_days', operatingDaysVal);
+        } else {
+          queryInverse = queryInverse.is('operating_days', null);
         }
         
         const { data: existingInverse, error: invErr } = await queryInverse;
@@ -275,8 +316,9 @@ export default function TripsPage() {
       const { error } = await supabase.from('trips').update({
         departure_city: newFrom,
         arrival_city: newTo,
-        trip_date: newIsDaily ? null : newDate,
-        is_daily: newIsDaily,
+        trip_date: tripDateVal,
+        is_daily: isDailyVal,
+        operating_days: operatingDaysVal,
         departure_time: newDepTime,
         arrival_time: newArrTime,
         duration: duration,
@@ -292,8 +334,9 @@ export default function TripsPage() {
           company_id: companyId,
           departure_city: newTo,
           arrival_city: newFrom,
-          trip_date: newIsDaily ? null : newDate,
-          is_daily: newIsDaily,
+          trip_date: tripDateVal,
+          is_daily: isDailyVal,
+          operating_days: operatingDaysVal,
           departure_time: newDepTime,
           arrival_time: newArrTime,
           duration: duration,
@@ -353,24 +396,67 @@ export default function TripsPage() {
       </div>
 
       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input 
-            type="checkbox" 
-            checked={newIsDaily}
-            onChange={(e) => setNewIsDaily(e.target.checked)}
-            className="w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
-          />
-          <span className="text-sm font-bold text-gray-900">Ce trajet a lieu tous les jours</span>
-        </label>
+        <label className="block text-sm font-bold text-gray-900 mb-1">Type de récurrence</label>
+        <div className="flex flex-col sm:flex-row gap-4 mb-3">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="tripType" value="daily" checked={tripType === 'daily'} onChange={() => setTripType('daily')} className="text-brand-green focus:ring-brand-green" />
+            <span className="text-sm font-semibold text-gray-800">Tous les jours</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="tripType" value="date" checked={tripType === 'date'} onChange={() => setTripType('date')} className="text-brand-green focus:ring-brand-green" />
+            <span className="text-sm font-semibold text-gray-800">Date spécifique</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="tripType" value="weekdays" checked={tripType === 'weekdays'} onChange={() => setTripType('weekdays')} className="text-brand-green focus:ring-brand-green" />
+            <span className="text-sm font-semibold text-gray-800">Jours de la semaine</span>
+          </label>
+        </div>
         
-        {!newIsDaily && (
+        {tripType === 'date' && (
           <div className="animate-in fade-in slide-in-from-top-1">
             <label className="block text-sm font-bold text-gray-900 mb-1">Date précise du départ</label>
             <input 
-              type="date" required={!newIsDaily}
+              type="date" required={tripType === 'date'}
               value={newDate} onChange={(e) => setNewDate(e.target.value)}
               className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
             />
+          </div>
+        )}
+
+        {tripType === 'weekdays' && (
+          <div className="animate-in fade-in slide-in-from-top-1 mt-3 space-y-2">
+            <label className="block text-sm font-bold text-gray-900">Jours de circulation</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Lun', value: 1 },
+                { label: 'Mar', value: 2 },
+                { label: 'Mer', value: 3 },
+                { label: 'Jeu', value: 4 },
+                { label: 'Ven', value: 5 },
+                { label: 'Sam', value: 6 },
+                { label: 'Dim', value: 0 }
+              ].map(day => (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => {
+                    if (operatingDays.includes(day.value)) {
+                      setOperatingDays(operatingDays.filter(d => d !== day.value));
+                    } else {
+                      setOperatingDays([...operatingDays, day.value]);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                    operatingDays.includes(day.value)
+                      ? 'bg-brand-green text-white border-brand-green'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-brand-green/50'
+                  } border`}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+            {operatingDays.length === 0 && <p className="text-xs text-red-500 font-medium mt-1">Veuillez sélectionner au moins un jour.</p>}
           </div>
         )}
       </div>
@@ -528,6 +614,11 @@ export default function TripsPage() {
                           {trip.is_daily ? (
                             <span className="flex items-center px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">
                               <RotateCcw className="w-3 h-3 mr-1" /> Tous les jours
+                            </span>
+                          ) : trip.operating_days && trip.operating_days.length > 0 ? (
+                            <span className="flex items-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold uppercase tracking-wider">
+                              <RotateCcw className="w-3 h-3 mr-1" /> 
+                              {trip.operating_days.sort((a: number, b: number) => (a===0?7:a) - (b===0?7:b)).map((d: number) => ({1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven', 6:'Sam', 0:'Dim'}[d])).join(', ')}
                             </span>
                           ) : (
                             <span className="flex items-center"><Calendar className="w-3 h-3 mr-1 text-gray-400" /> {trip.trip_date}</span>

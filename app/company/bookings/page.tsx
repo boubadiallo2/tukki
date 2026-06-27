@@ -212,7 +212,7 @@ export default function BookingsPage() {
 
     const rows = expandedBookings.map(b => {
       const dateOfTravel = b.travel_date || b.trips?.trip_date;
-      const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR') : "Quotidien";
+      const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR') : (b.trips?.operating_days && b.trips?.operating_days.length > 0 ? b.trips?.operating_days.sort((a:number,b:number)=>(a===0?7:a)-(b===0?7:b)).map((d:number)=>({1:'Lun',2:'Mar',3:'Mer',4:'Jeu',5:'Ven',6:'Sam',0:'Dim'}[d])).join(', ') : "Tous les jours");
       const statusStr = b.status === 'CANCELLED' ? "Annulé" : "Confirmé";
       
       return [
@@ -278,7 +278,7 @@ export default function BookingsPage() {
 
     const data = expandedBookings.map(b => {
       const dateOfTravel = b.travel_date || b.trips?.trip_date;
-      const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR') : "Quotidien";
+      const formattedDate = dateOfTravel ? new Date(dateOfTravel).toLocaleDateString('fr-FR') : (b.trips?.operating_days && b.trips?.operating_days.length > 0 ? b.trips?.operating_days.sort((a:number,b:number)=>(a===0?7:a)-(b===0?7:b)).map((d:number)=>({1:'Lun',2:'Mar',3:'Mer',4:'Jeu',5:'Ven',6:'Sam',0:'Dim'}[d])).join(', ') : "Tous les jours");
       const statusStr = b.status === 'CANCELLED' ? "Annulé" : "Confirmé";
       
       return [
@@ -441,6 +441,8 @@ export default function BookingsPage() {
                     <div className="flex items-center space-x-2 text-xs font-semibold text-gray-500 mt-1">
                       {booking.trips?.is_daily && !booking.travel_date ? (
                          <span className={`flex items-center px-1 rounded ${isCancelled ? 'text-gray-400 bg-gray-100' : 'text-emerald-600 bg-emerald-50'}`}><RotateCcw className="w-3 h-3 mr-1" /> Quotidien</span>
+                      ) : booking.trips?.operating_days && booking.trips?.operating_days.length > 0 && !booking.travel_date ? (
+                         <span className={`flex items-center px-1 rounded ${isCancelled ? 'text-gray-400 bg-gray-100' : 'text-blue-600 bg-blue-50'}`}><RotateCcw className="w-3 h-3 mr-1" /> {formattedDate}</span>
                       ) : (
                          <span className="flex items-center"><Calendar className="w-3 h-3 mr-1" /> {formattedDate}</span>
                       )}
