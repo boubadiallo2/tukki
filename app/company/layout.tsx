@@ -14,7 +14,8 @@ import {
   Bus,
   Bell,
   Store,
-  Users
+  Users,
+  Wallet
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabaseClient";
 
@@ -73,6 +74,7 @@ export default function CompanyLayout({
     { name: "Trajets", href: "/company/trips", icon: Map },
     { name: "Réservations", href: "/company/bookings", icon: Ticket },
     { name: "Vente au guichet", href: "/company/sell", icon: Store },
+    { name: "Finances", href: "/company/finances", icon: Wallet },
     { name: "Équipe", href: "/company/team", icon: Users },
     { name: "Paramètres", href: "/company/settings", icon: Settings },
   ];

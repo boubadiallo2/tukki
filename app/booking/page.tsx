@@ -43,6 +43,7 @@ function BookingPageContent() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fixedFee, setFixedFee] = useState(100);
 
   // Load trip details
   useEffect(() => {
@@ -79,7 +80,17 @@ function BookingPageContent() {
       }
     }
     
+    async function fetchSettings() {
+      try {
+        const { data } = await supabase.from('platform_settings').select('fixed_fee').eq('id', 1).single();
+        if (data) setFixedFee(data.fixed_fee);
+      } catch (err) {
+        console.error("Failed to fetch settings", err);
+      }
+    }
+    
     fetchTrip();
+    fetchSettings();
   }, [tripId, from, to, date]);
 
   // Handle seat clicks
@@ -142,7 +153,9 @@ function BookingPageContent() {
         const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
         const passengersName = names.map(n => n.trim()).join(", ");
         
-        const finalPrice = trip!.price * passengersCount + 100 * passengersCount;
+        const commissionAmount = fixedFee * passengersCount;
+        const netAmount = trip!.price * passengersCount;
+        const finalPrice = netAmount + commissionAmount;
 
         // Insert outbound booking
         const { error: insertError } = await supabase.from('bookings').insert({
@@ -154,7 +167,9 @@ function BookingPageContent() {
           total_price: finalPrice,
           booking_number: randomId,
           travel_date: date,
-          status: 'CONFIRMED' // Mark as confirmed so it blocks the seat immediately
+          status: 'CONFIRMED', // Mark as confirmed so it blocks the seat immediately
+          commission_amount: commissionAmount,
+          net_amount: netAmount
         });
 
         if (insertError) throw insertError;
@@ -239,7 +254,7 @@ function BookingPageContent() {
   }
 
   const basePrice = trip.price * passengersCount;
-  const serviceFee = 100 * passengersCount; // 100 FCFA fee per ticket per trip
+  const serviceFee = fixedFee * passengersCount;
   const totalPrice = basePrice + serviceFee;
 
   return (

@@ -23,6 +23,7 @@ export default function SellTicketPage() {
   const [trips, setTrips] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string>("");
   const [agentId, setAgentId] = useState<string>("");
+  const [fixedFee, setFixedFee] = useState(100);
   
   // Selection state
   const [selectedTripId, setSelectedTripId] = useState<string>("");
@@ -44,7 +45,17 @@ export default function SellTicketPage() {
 
   useEffect(() => {
     fetchTrips();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await supabase.from('platform_settings').select('fixed_fee').eq('id', 1).single();
+      if (data) setFixedFee(data.fixed_fee);
+    } catch (err) {
+      console.error("Failed to fetch settings", err);
+    }
+  };
 
   const fetchTrips = async () => {
     setLoading(true);
@@ -231,7 +242,9 @@ export default function SellTicketPage() {
     try {
       const randomId = `SEN-${Math.floor(100000 + Math.random() * 900000)}`;
       const passengersName = names.map(n => n.trim()).join(", ");
-      const totalPrice = selectedTrip.price * passengersCount; // No extra fees for counter sales maybe? Or same fee? Let's keep it simple: just price * count
+      const totalPrice = selectedTrip.price * passengersCount; // Counter sale price (Tukki fee might not be added to customer price, but Tukki still claims commission)
+      const commissionAmount = fixedFee * passengersCount;
+      const netAmount = totalPrice - commissionAmount;
 
       const { error } = await supabase.from('bookings').insert({
         trip_id: selectedTripId,
@@ -243,7 +256,9 @@ export default function SellTicketPage() {
         travel_date: selectedDate,
         status: 'CONFIRMED',
         payment_method: paymentMethod,
-        agent_id: agentId
+        agent_id: agentId,
+        commission_amount: commissionAmount,
+        net_amount: netAmount
       });
 
       if (error) throw error;

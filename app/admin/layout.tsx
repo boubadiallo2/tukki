@@ -15,7 +15,8 @@ import {
   Compass,
   Bell,
   BarChart3,
-  Users
+  Users,
+  Banknote
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -49,6 +50,7 @@ export default function AdminLayout({
     { name: "Vue Globale", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Compagnies", href: "/admin/companies", icon: Building2 },
     { name: "Réservations", href: "/admin/bookings", icon: Ticket },
+    { name: "Reversements", href: "/admin/payouts", icon: Banknote },
     { name: "Rapports & Finances", href: "/admin/reports", icon: BarChart3 },
     { name: "Utilisateurs", href: "/admin/users", icon: Users },
     { name: "Paramètres Plateforme", href: "/admin/settings", icon: Settings },
