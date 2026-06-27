@@ -597,23 +597,24 @@ export default function TripsPage() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
                 <th className="p-4 pl-6">Trajet & Date</th>
-                <th className="p-4">Places (Remplissage)</th>
+                <th className="p-4">Places</th>
                 <th className="p-4">Prix</th>
                 <th className="p-4">Statut</th>
+                <th className="p-4">Convoyeur</th>
                 {userRole !== 'company_agent' && <th className="p-4 pr-6 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={userRole === 'company_agent' ? 4 : 5} className="p-8 text-center text-gray-500">
+                  <td colSpan={userRole === 'company_agent' ? 5 : 6} className="p-8 text-center text-gray-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-green" />
                     Chargement des trajets...
                   </td>
                 </tr>
               ) : filteredTrips.length === 0 ? (
                 <tr>
-                  <td colSpan={userRole === 'company_agent' ? 4 : 5} className="p-12 text-center text-gray-500">
+                  <td colSpan={userRole === 'company_agent' ? 5 : 6} className="p-12 text-center text-gray-500">
                     <MapPin className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                     <p className="text-sm font-bold text-gray-400">Aucun trajet trouvé.</p>
                   </td>
@@ -655,22 +656,7 @@ export default function TripsPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden w-16">
-                          <div 
-                            className={`h-full rounded-full ${isFull ? 'bg-red-500' : 'bg-brand-green'}`} 
-                            style={{ width: `${Math.min((bookedCount / trip.total_seats) * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs font-bold text-gray-700 whitespace-nowrap">{bookedCount}/{trip.total_seats}</span>
-                      </div>
-                      {trip.driver_name && (
-                        <span className="text-[10px] text-gray-500 font-medium">
-                          Convoyeur: <span className="font-bold text-gray-700">{trip.driver_name}</span>
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-sm font-bold text-gray-700">{bookedCount}/{trip.total_seats}</span>
                   </td>
                   <td className="p-4">
                     <p className="text-sm font-black text-gray-900">{trip.price.toLocaleString()} FCFA</p>
@@ -681,6 +667,13 @@ export default function TripsPage() {
                     }`}>
                       {isFull ? 'Complet' : 'Disponible'}
                     </span>
+                  </td>
+                  <td className="p-4">
+                    {trip.driver_name ? (
+                      <span className="text-sm font-bold text-gray-900">{trip.driver_name}</span>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Non renseigné</span>
+                    )}
                   </td>
                   {userRole !== 'company_agent' && (
                     <td className="p-4 pr-6 text-right">
