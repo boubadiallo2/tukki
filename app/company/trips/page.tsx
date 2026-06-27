@@ -15,6 +15,7 @@ export default function TripsPage() {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,7 +43,9 @@ export default function TripsPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     
-    const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', session.user.id).single();
+    const { data: profile } = await supabase.from('profiles').select('company_id, role').eq('id', session.user.id).single();
+    
+    if (profile) setUserRole(profile.role);
       
     if (profile?.company_id) {
       setCompanyId(profile.company_id);
@@ -545,13 +548,15 @@ export default function TripsPage() {
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Gestion des Trajets</h1>
           <p className="text-sm text-gray-500 font-medium mt-1">Créez et modifiez vos lignes de transport.</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nouveau trajet</span>
-        </button>
+        {userRole !== 'company_agent' && (
+          <button 
+            onClick={openAddModal}
+            className="bg-brand-green text-white hover:bg-brand-green-dark px-4 py-2 rounded-xl font-bold text-sm shadow-xs transition-colors flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nouveau trajet</span>
+          </button>
+        )}
       </div>
 
       {/* Filters and Search */}
@@ -578,20 +583,20 @@ export default function TripsPage() {
                 <th className="p-4">Places (Remplissage)</th>
                 <th className="p-4">Prix</th>
                 <th className="p-4">Statut</th>
-                <th className="p-4 pr-6 text-right">Actions</th>
+                {userRole !== 'company_agent' && <th className="p-4 pr-6 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
+                  <td colSpan={userRole === 'company_agent' ? 4 : 5} className="p-8 text-center text-gray-500">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-green" />
                     Chargement des trajets...
                   </td>
                 </tr>
               ) : filteredTrips.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-gray-500">
+                  <td colSpan={userRole === 'company_agent' ? 4 : 5} className="p-12 text-center text-gray-500">
                     <MapPin className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                     <p className="text-sm font-bold text-gray-400">Aucun trajet trouvé.</p>
                   </td>
@@ -653,24 +658,26 @@ export default function TripsPage() {
                       {isFull ? 'Complet' : 'Disponible'}
                     </span>
                   </td>
-                  <td className="p-4 pr-6 text-right">
-                    <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => openEditModal(trip)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
-                        title="Modifier"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => promptDeleteTrip(trip.id, trip.departure_city, trip.arrival_city)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {userRole !== 'company_agent' && (
+                    <td className="p-4 pr-6 text-right">
+                      <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => openEditModal(trip)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                          title="Modifier"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => promptDeleteTrip(trip.id, trip.departure_city, trip.arrival_city)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               )})}
             </tbody>
