@@ -36,6 +36,7 @@ export default function TripsPage() {
   const [newPrice, setNewPrice] = useState("");
   const [newTotalSeats, setNewTotalSeats] = useState("50");
   const [newCreateInverse, setNewCreateInverse] = useState(false);
+  const [newDriverName, setNewDriverName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchTrips = async () => {
@@ -93,6 +94,7 @@ export default function TripsPage() {
     setNewPrice("");
     setNewTotalSeats("50");
     setNewCreateInverse(false);
+    setNewDriverName("");
   };
 
   const openAddModal = () => {
@@ -120,6 +122,7 @@ export default function TripsPage() {
     setNewPrice(trip.price.toString());
     setNewTotalSeats(trip.total_seats.toString());
     setNewCreateInverse(false);
+    setNewDriverName(trip.driver_name || "");
     setIsEditModalOpen(true);
   };
 
@@ -188,7 +191,8 @@ export default function TripsPage() {
         price: parseInt(newPrice, 10),
         total_seats: totalSeatsNum,
         available_seats: totalSeatsNum, // All seats available initially
-        occupied_seats: []
+        occupied_seats: [],
+        driver_name: newDriverName
       }];
 
       if (newCreateInverse) {
@@ -233,7 +237,8 @@ export default function TripsPage() {
           price: parseInt(newPrice, 10),
           total_seats: totalSeatsNum,
           available_seats: totalSeatsNum,
-          occupied_seats: []
+          occupied_seats: [],
+          driver_name: newDriverName
         });
       }
 
@@ -327,7 +332,8 @@ export default function TripsPage() {
         duration: duration,
         price: parseInt(newPrice, 10),
         total_seats: totalSeatsNum,
-        available_seats: newAvailable >= 0 ? newAvailable : 0
+        available_seats: newAvailable >= 0 ? newAvailable : 0,
+        driver_name: newDriverName
       }).eq('id', editingTripId);
 
       if (error) throw error;
@@ -346,7 +352,8 @@ export default function TripsPage() {
           price: parseInt(newPrice, 10),
           total_seats: totalSeatsNum,
           available_seats: totalSeatsNum,
-          occupied_seats: []
+          occupied_seats: [],
+          driver_name: newDriverName
         });
         if (inverseError) throw inverseError;
       }
@@ -502,6 +509,16 @@ export default function TripsPage() {
             placeholder="Ex: 50"
           />
         </div>
+      </div>
+
+      <div className="mt-4">
+        <label className="block text-sm font-bold text-gray-900 mb-1">Nom du Convoyeur (Optionnel)</label>
+        <input 
+          type="text" 
+          value={newDriverName} onChange={(e) => setNewDriverName(e.target.value)}
+          className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/20"
+          placeholder="Ex: Modou Fall"
+        />
       </div>
 
       <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mt-4">
