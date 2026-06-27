@@ -655,14 +655,21 @@ export default function TripsPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden w-24">
-                        <div 
-                          className={`h-full rounded-full ${isFull ? 'bg-red-500' : 'bg-brand-green'}`} 
-                          style={{ width: `${Math.min((bookedCount / trip.total_seats) * 100, 100)}%` }}
-                        ></div>
+                    <div className="flex flex-col space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden w-16">
+                          <div 
+                            className={`h-full rounded-full ${isFull ? 'bg-red-500' : 'bg-brand-green'}`} 
+                            style={{ width: `${Math.min((bookedCount / trip.total_seats) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs font-bold text-gray-700 whitespace-nowrap">{bookedCount}/{trip.total_seats}</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-700 whitespace-nowrap">{bookedCount}/{trip.total_seats}</span>
+                      {trip.driver_name && (
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          Convoyeur: <span className="font-bold text-gray-700">{trip.driver_name}</span>
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-4">
