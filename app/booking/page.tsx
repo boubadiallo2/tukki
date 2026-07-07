@@ -538,7 +538,7 @@ function BookingPageContent() {
                       {passengersCount} Place{passengersCount > 1 ? "s" : ""}
                     </p>
                     <p className="text-xs text-brand-green font-bold">
-                      {selectedSeats.length > 0 ? selectedSeats.join(", ") : "Aucune"}
+                      {selectedSeats.length > 0 ? `Siège(s) : ${selectedSeats.join(", ")}` : "Siège(s) : Aucun"}
                     </p>
                   </div>
                 </div>
